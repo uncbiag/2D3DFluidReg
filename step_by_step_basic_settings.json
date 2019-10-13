@@ -1,0 +1,189 @@
+{
+    "model": {
+        "deformation": {
+            "compute_similarity_measure_at_low_res": false,
+            "map_low_res_factor": 1.0,
+            "use_map": true
+        },
+        "registration_model": {
+            "env": {
+                "get_momentum_from_external_network": false,
+                "reg_factor": 1.0,
+                "use_ode_tuple": false,
+                "use_odeint": true
+            },
+            "forward_model": {
+                "adjoin_on": true,
+                "atol": 1e-05,
+                "number_of_time_steps": 20,
+                "rtol": 1e-05,
+                "smoother": {
+                    "multi_gaussian_stds": [
+                        0.05,
+                        0.1,
+                        0.15,
+                        0.2,
+                        0.25
+                    ],
+                    "multi_gaussian_weights": [
+                        0.06666666666666667,
+                        0.13333333333333333,
+                        0.19999999999999998,
+                        0.26666666666666666,
+                        0.3333333333333333
+                    ],
+                    "type": "multiGaussian"
+                },
+                "solver": "rk4"
+            },
+            "loss": {
+                "display_max_displacement": false,
+                "limit_displacement": false,
+                "max_displacement": 0.05
+            },
+            "shooting_vector_momentum": {
+                "use_velocity_mask_on_boundary": false
+            },
+            "similarity_measure": {
+                "lncc": {
+                    "dilation": [
+                        [
+                            2,
+                            2,
+                            2
+                        ],
+                        [
+                            2,
+                            2
+                        ],
+                        [
+                            1
+                        ]
+                    ],
+                    "kernel_size_ratio": [
+                        [
+                            0.0625,
+                            0.125,
+                            0.25
+                        ],
+                        [
+                            0.25,
+                            0.5
+                        ],
+                        [
+                            0.5
+                        ]
+                    ],
+                    "kernel_weight_ratio": [
+                        [
+                            0.1,
+                            0.3,
+                            0.6
+                        ],
+                        [
+                            0.3,
+                            0.7
+                        ],
+                        [
+                            1.0
+                        ]
+                    ],
+                    "resol_bound": [
+                        128,
+                        64
+                    ],
+                    "stride": [
+                        [
+                            0.25,
+                            0.25,
+                            0.25
+                        ],
+                        [
+                            0.25,
+                            0.25
+                        ],
+                        [
+                            0.25
+                        ]
+                    ]
+                },
+                "sigma": 0.1,
+                "type": "sdtctprojection"
+            },
+            "spline_order": 1,
+            "theta_list": [
+                -0.10235129072009484,
+                -0.09640143041785006,
+                -0.09044471570413681,
+                -0.08448155814644943,
+                -0.07851237203564043,
+                -0.06655758392974916,
+                -0.06057282261627257,
+                -0.05458371376600163,
+                -0.04859068272938509,
+                -0.04259415654097348,
+                -0.03659456373885246,
+                -0.030592334182465594,
+                -0.02458789886901693,
+                -0.018581689748648798,
+                -0.012574139538591744,
+                -0.00656568153648634,
+                0.00545222287552104,
+                0.011460801475771807,
+                0.017468552624695228,
+                0.02347504293765318,
+                0.035482510432642195,
+                0.041482624320558145,
+                0.047479751155324434,
+                0.05347346214020565,
+                0.059463329948359185,
+                0.07142983516008777,
+                0.07740562687834086,
+                0.0833758844014143,
+                0.08934019042704212,
+                0.09529813017798716,
+                0.10124929156962213
+            ],
+            "type": "svf_vector_momentum_map",
+            "use_CFL_clamping": true
+        }
+    },
+    "optimizer": {
+        "gradient_clipping": {
+            "clip_display": true,
+            "clip_individual_gradient": false,
+            "clip_individual_gradient_value": 34.0,
+            "clip_shared_gradient": true,
+            "clip_shared_gradient_value": 1.0
+        },
+        "name": "sgd",
+        "scheduler": {
+            "factor": 0.4,
+            "patience": 8,
+            "verbose": true
+        },
+        "sgd": {
+            "individual": {
+                "dampening": 0.0,
+                "lr": 0.1,
+                "momentum": 0.9,
+                "nesterov": true,
+                "weight_decay": 0.0
+            },
+            "shared": {
+                "dampening": 0.0,
+                "lr": 0.1,
+                "momentum": 0.9,
+                "nesterov": true,
+                "weight_decay": 0.0
+            }
+        },
+        "single_scale": {
+            "nr_of_iterations": 5,
+            "rel_ftol": 0.0001
+        },
+        "use_step_size_scheduler": true,
+        "weight_clipping_type": "none",
+        "weight_clipping_value": 1.0
+    }
+}
