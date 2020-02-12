@@ -1,0 +1,173 @@
+{
+    "model": {
+        "deformation": {
+            "compute_similarity_measure_at_low_res": false,
+            "map_low_res_factor": 1.0,
+            "use_map": true
+        },
+        "registration_model": {
+            "emitter_pos_list": [
+                [-1.0, 2.0, -1.0],
+                [-0.6, 2.0, -0.8],
+                [-0.3, 2.0, -0.5],
+                [-0.2, 2.0, -0.2],
+                [-0.1, 2.0, -0.1],
+                [0.0, 2.0, 0.0],
+                [0.1, 2.0, 0.1],
+                [0.2, 2.0, 0.2],
+                [0.3, 2.0, 0.5],
+                [0.6, 2.0, 0.8],
+                [1.0, 2.0, 1.0]
+            ],
+            "env": {
+                "get_momentum_from_external_network": false,
+                "reg_factor": 1.0,
+                "use_ode_tuple": false,
+                "use_odeint": true
+            },
+            "forward_model": {
+                "adjoin_on": true,
+                "atol": 1e-05,
+                "number_of_time_steps": 20,
+                "rtol": 1e-05,
+                "smoother": {
+                    "multi_gaussian_stds": [
+                        0.05,
+                        0.1,
+                        0.2,
+                        0.3
+                    ],
+                    "multi_gaussian_weights": [
+                        0.4,
+                        0.25,
+                        0.2,
+                        0.15
+                    ],
+                    "type": "multiGaussian"
+                },
+                "solver": "rk4"
+            },
+            "loss": {
+                "display_max_displacement": false,
+                "limit_displacement": false,
+                "max_displacement": 0.05
+            },
+            "resolution_scale": [
+                2.5,
+                2.5
+            ],
+            "sample_rate": [
+                1,
+                1,
+                1
+            ],
+            "shooting_vector_momentum": {
+                "use_velocity_mask_on_boundary": false
+            },
+            "similarity_measure": {
+                "lncc": {
+                    "dilation": [
+                        [
+                            2,
+                            2,
+                            2
+                        ],
+                        [
+                            2,
+                            2
+                        ],
+                        [
+                            1
+                        ]
+                    ],
+                    "kernel_size_ratio": [
+                        [
+                            0.0625,
+                            0.125,
+                            0.25
+                        ],
+                        [
+                            0.25,
+                            0.5
+                        ],
+                        [
+                            0.5
+                        ]
+                    ],
+                    "kernel_weight_ratio": [
+                        [
+                            0.3,
+                            0.3,
+                            0.4
+                        ],
+                        [
+                            0.3,
+                            0.7
+                        ],
+                        [
+                            1.0
+                        ]
+                    ],
+                    "resol_bound": [
+                        64,
+                        32
+                    ],
+                    "stride": [
+                        [
+                            0.25,
+                            0.25,
+                            0.25
+                        ],
+                        [
+                            0.25,
+                            0.25
+                        ],
+                        [
+                            0.25
+                        ]
+                    ]
+                },
+                "sigma": 0.1,
+                "type": "ncc",
+                "projection":{
+                    "base":"ncc"
+                }
+            },
+            "spline_order": 1,
+            "type": "lddmm_shooting_map",
+            "use_CFL_clamping": true
+        }
+    },
+    "optimizer": {
+        "gradient_clipping": {
+            "clip_display": true,
+            "clip_individual_gradient": true,
+            "clip_individual_gradient_value": 32.0,
+            "clip_shared_gradient": true,
+            "clip_shared_gradient_value": 1.0
+        },
+        "lbfgs": {
+            "history_size": 5,
+            "line_search_fn": "backtracking",
+            "max_eval": 5,
+            "max_iter": 1
+        },
+        "name": "lbfgs_ls",
+        "scheduler": {
+            "factor": 0.5,
+            "patience": 3,
+            "verbose": true
+        },
+        "single_scale": {
+            "nr_of_iterations": 1,
+            "rel_ftol": 1e-05
+        },
+        "multi_scale": {
+            "scale_factors":[1.0, 0.75, 0.5, 0.25],
+            "scale_iterations":[5, 15, 15, 20]
+        },
+        "use_step_size_scheduler": true,
+        "weight_clipping_type": "none",
+        "weight_clipping_value": 1.0
+    }
+}

@@ -32,14 +32,14 @@ def load_scan(path):
     return slices
 
 
-def resample(imgs, spacing, new_spacing, order=2):
+def resample(imgs, spacing, new_spacing, order=1):
     if len(imgs.shape) == 3:
         new_shape = np.round(imgs.shape * spacing / new_spacing)
         true_spacing = spacing * imgs.shape / new_shape
         resize_factor = new_shape / imgs.shape
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            imgs = zoom(imgs, resize_factor, mode='nearest', order=order)
+            imgs = zoom(imgs, resize_factor, order=order)
         return imgs, true_spacing
     elif len(imgs.shape) == 4:
         n = imgs.shape[-1]
@@ -117,7 +117,7 @@ if __name__=="__main__":
     # plt.imshow(case_pixels[120], cmap='gray')
     # plt.savefig("./data/case_lung.png")
     # Transform HU to attenuation coefficient u
-    # case_pixels = (case_pixels/1000.0+1)*1.673
+    case_pixels = (case_pixels/1000.0+1)*1.673
     
     # Save preprocessed CT to numpy
     if not os.path.exists(processed_file_folder):

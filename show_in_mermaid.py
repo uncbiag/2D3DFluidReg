@@ -7,6 +7,10 @@ import os
 import torch
 from mermaid import image_sampling
 from CTPlayground import resample
+import mermaid.module_parameters as pars
+
+
+from mermaid import utils as utils
 
 def plot_grid(ax, gridx,gridy, **kwargs):
     for i in range(gridx.shape[0]):
@@ -88,22 +92,42 @@ class ImageViewer3D_Sliced_Grids(viewers.ImageViewer3D_Sliced):
         self.show_grids()
 
 
-I0_file = "./data/input_svf.npy"
-disp_file = "./data/disp_svf_double.npy"
-warped_file = "./data/warped_svf_double.npy"
+# Load Params
+path = "./lung_registration_setting.json"
+lung_reg_params = pars.ParameterDict()
+lung_reg_params.load_JSON(path)
+
+I0_file = lung_reg_params["preprocessed_folder"] + "/I0_3d.npy"
+disp_file = lung_reg_params["affine"]["disp_file"]
+warped_file = lung_reg_params["affine"]["warped_file"]
+
 sDT_dicom = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
 ct_IMG = "../eval_data/copd1/copd1/copd1_eBHCT.img"
-demo_npy = "../eval_data/preprocessed/ehale_3d.npy"
+demo_npy = lung_reg_params["preprocessed_folder"] + "/I1_3d.npy"
+affine_phi = lung_reg_params["affine"]["disp_file"]
+
+# if using synthetic data
+# I0_file = lung_reg_params["source_file_synthetic"]
+# disp_file = lung_reg_params["disp_file"]
+# warped_file = lung_reg_params["warped_file"]
+# demo_npy = lung_reg_params["target_file_synthetic"]
 
 SHOW_SDT = False
 SHOW_CT_IMG = False
-SHOW_DISP = True
+SHOW_DISP = False
 SHOW_DEMO_NPY = True
 
-spacing = np.array([72, 80, 80])
-I0 = np.load(I0_file)[0,0]
+prop = np.load(lung_reg_params["preprocessed_folder"] + "/prop.npy", allow_pickle=True)
+dim = np.array(prop.item().get("dim"))
+
+spacing = dim/np.array([1.5,1.5,1.5])
+# spacing = np.array([64, 64, 64])
+# affine_phi = torch.from_numpy(np.load(affine_phi)[0])
+# I0 = utils.compute_warped_image(torch.from_numpy(np.load(I0_file)), affine_phi, 1./(spacing-1.), 1).cpu() 
+I0 = np.load(I0_file)
 phi = np.swapaxes(np.multiply(np.swapaxes(np.load(disp_file)[0],0,3), spacing), 0, 3)
 warped = np.load(warped_file)[0,0]
+
 d, w, h = I0.shape
 
 if SHOW_SDT:
@@ -121,7 +145,7 @@ if SHOW_SDT:
     sdt = sdt.detach().cpu().numpy()[0,0]
 
 if SHOW_CT_IMG:
-    shape = (121, 512, 512)
+    shape = dim
     spacing = [2.5, 0.625, 0.625]
     dtype = np.dtype("<i2")
     fid = open(ct_IMG, 'rb')
@@ -152,12 +176,12 @@ ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Source Image - Y slice')
 
 if not SHOW_DISP:
     warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Warped Image - Z slice')
-    warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'arped Image - X slice')
-    warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'arped Image - Y slice')
+    warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'Warped Image - X slice')
+    warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Warped Image - Y slice')
 else:
-    warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'arped Image - Z slice')
-    warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'arped Image - X slice')
-    warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'arped Image - Y slice')
+    warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'warped Image - Z slice')
+    warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'warped Image - X slice')
+    warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'warped Image - Y slice')
 
 if SHOW_SDT:
     warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Target Image - Z slice')
@@ -191,4 +215,4 @@ if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
 feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
 
 plt.show()
-# plt.savefig("./data/imageViewer_double.png")
+# plt.savefig("./data/imageViewer.png", dpi=200)

@@ -1,0 +1,31 @@
+{
+    
+    "source_file":"../eval_data/preprocessed/I0_prereg.npy", 
+    "target_file":"../eval_data/preprocessed/I1_temp.npy",
+
+    "source_img":"../eval_data/Case1Pack/Images/case1_T00_s.img",
+    "target_img":"../eval_data/Case1Pack/Images/case1_T50_s.img",
+    "preprocessed_folder":"../eval_data/preprocessed",
+    "recompute_preprocessed":false,
+
+    "target_file_synthetic":"./data/I1_synthetic.npy",
+    "source_file_synthetic":"./data/I0_synthetic.npy",
+
+    "eval_marker_source_file":"../eval_data/Case1Pack/ExtremePhases/Case1_300_T00_xyz.txt",
+    "eval_marker_target_file":"../eval_data/Case1Pack/ExtremePhases/Case1_300_T50_xyz.txt",
+
+    "affine":{
+        "run" : true,
+        "setting":"./mermaid_setting_affine.json",
+        "disp_file":"./data/disp_affine_lung_mask_only_proj_small_def.npy",
+        "disp_inverse_file":"./data/disp_inverse_affine_lung_mask_only_proj_small_def.npy",
+        "warped_file":"./data/warped_affine_lung_only_proj_small_def.npy"
+    },
+    "projection":{
+        "run":true,
+        "setting":"./mermaid_setting_projection.json",
+        "disp_file":"./data/disp_svf_lung_only_proj_small_def.npy",
+        "disp_inverse_file":"./data/disp_inverse_svf_lung_only_proj_small_def.npy",
+        "warped_file":"./data/warped_svf_lung_only_proj_small_def.npy"
+    }
+}
