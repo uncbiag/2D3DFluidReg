@@ -8,6 +8,11 @@ import mermaid.module_parameters as pars
 import matplotlib.pyplot as plt
 
 from CTPlayground import resample
+import argparse
+
+parser = argparse.ArgumentParser(description='Show registration result')
+parser.add_argument('--setting', '-s', metavar='SETTING', default='',
+                    help='setting')
 
 def readPoint(f_path):
     """
@@ -293,20 +298,22 @@ def plot_one_marker(source_file, target_file, phi_file, dim_origin, spacing_orig
 
 
 if __name__ == "__main__":
+    args = parser.parse_args()
     # Load Params
-    path = "./lung_registration_setting.json"
     lung_reg_params = pars.ParameterDict()
-    lung_reg_params.load_JSON(path)
+    lung_reg_params.load_JSON(args.setting)
     
+    prefix = lung_reg_params["source_img"].split("/")[-3]
+
     source_file = lung_reg_params["eval_marker_source_file"]
     target_file = lung_reg_params["eval_marker_target_file"]
     phi_file = lung_reg_params["projection"]["disp_inverse_file"]
-    prop_file = lung_reg_params["preprocessed_folder"] + '/prop.npy'
+    prop_file = lung_reg_params["preprocessed_folder"] + '/' + prefix +'_prop.npy'
     
     prop = np.load(prop_file, allow_pickle=True)
     dim = np.flip(np.array(prop.item().get("dim")))
     origin = np.flip(prop.item().get("crop")[0:3])
-    spacing = np.array([0.97, 0.97, 2.5])
+    spacing = np.flip(lung_reg_params["spacing"]).copy()
 
     eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
@@ -317,8 +324,8 @@ if __name__ == "__main__":
     # ct_target_file = "../eval_data/preprocessed/ehale_3d.npy"
     # plot_marker_distribution(source_file, target_file, spacing, ct_source_file, ct_target_file, np.array([4., 4., 4.]))
 
-    ct_source_file = lung_reg_params["preprocessed_folder"] + "/I0_3d.npy"
-    ct_target_file = lung_reg_params["preprocessed_folder"] + "/I1_3d.npy"
+    ct_source_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I0_3d.npy"
+    ct_target_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I1_3d.npy"
     warped_file = lung_reg_params["projection"]["warped_file"]
 
     # dim = np.array([512.0, 512.0, 121.])

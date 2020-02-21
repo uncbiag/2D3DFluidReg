@@ -45,8 +45,8 @@ def seg_bg_mask(img, only_lung):
     # # First erode away the finer elements, then dilate to include some of the pixels surrounding the lung.  
     # # We don't want to accidentally clip the lung.
 
-    eroded = morphology.erosion(thresh_img,np.ones([3,3,3]))
-    dilation = morphology.dilation(eroded,np.ones([3,3,3]))
+    eroded = morphology.erosion(thresh_img,np.ones([4,4,4]))
+    dilation = morphology.dilation(eroded,np.ones([4,4,4]))
 
     labels = measure.label(dilation)
     if only_lung:
@@ -56,7 +56,8 @@ def seg_bg_mask(img, only_lung):
         good_labels_bbox = []
         for prop in regions:
             B = prop.bbox
-            if B[4]-B[1]<W/20*16 and B[4]<W/20*18 and B[1]>W/20*2: # and B[5]-B[2]<H/20*19 and B[2]>W/20 and B[5]<W/20*19:
+            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
+            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
                 good_labels.append(prop.label)
                 good_labels_bbox.append(prop.bbox)
         mask = np.ndarray([D,W,H],dtype=np.int8)
@@ -104,6 +105,10 @@ def load_IMG(file_path, shape, spacing, new_spacing):
     image = data.reshape(shape)
 
     mask, bbox = seg_bg_mask(image, True)
+
+    # for i in range(0,10):
+    #     plt.imshow((mask*image)[:,:,419-i*2])
+    #     plt.savefig("./data/image_%i.jpg"%i)
     
     image = image.astype(np.float32)
     image_max = np.max(image)
@@ -140,6 +145,7 @@ def project_grid(img, emi_pos, resolution, sample_rate, obj_shape, spacing):
     I[:,:,2] = grid_y
     I = torch.add(I,-I0)
     I = I/torch.norm(I, dim=2, keepdim=True)
+    dx = torch.abs(torch.mul(torch.ones((I.shape[0],I.shape[1]), device=device),1./I[:,:,1]))
 
     # Define a line as I(t)=I0+t*I
     # Define a plane as (P-P0)*N=0, P is a vector of points on the plane
@@ -152,7 +158,7 @@ def project_grid(img, emi_pos, resolution, sample_rate, obj_shape, spacing):
     grid[:,:,:,0] = grid[:,:,:,0]/obj_shape[0]*2.0
     grid[:,:,:,1] = (grid[:,:,:,1]-0.)/obj_shape[1]*2.0 + -1.
     grid[:,:,:,2] = grid[:,:,:,2]/obj_shape[2]*2.0
-    return grid
+    return grid, dx
 
 def calculate_projection(img, poses, resolution_scale, sample_rate, device):
     poses = poses*img.shape
@@ -163,9 +169,11 @@ def calculate_projection(img, poses, resolution_scale, sample_rate, device):
                   int(I1.shape[4] * resolution_scale)]
     projections = torch.zeros((1, poses.shape[0], resolution[0]*sample_rate[0], resolution[1]*sample_rate[2])).to(device)
     for i in range(poses.shape[0]):
-        grid = torch.flip(project_grid(I1, poses[i], (resolution[0], resolution[1]), sample_rate, I1.shape[2:], spacing),[3])
-        projections[0, i] = (torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=False), dim=4)[0, 0])
-        np.save("./data/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
+        grid, dx = project_grid(I1, poses[i], (resolution[0], resolution[1]), sample_rate, I1.shape[2:], spacing)
+        grid = torch.flip(grid,[3])
+        dx = dx.unsqueeze(0).unsqueeze(0)
+        projections[0, i] = torch.mul(torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=False), dim=4), dx)[0, 0]
+        # np.save("./data/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
         del grid
         torch.cuda.empty_cache()
         
@@ -178,16 +186,13 @@ def smoother(img, sigma=3):
         img[i] = gaussian_filter(img[i], sigma)
     return img
 
-def preprocessData(source_file, target_file, dest_folder, shape, spacing,
+def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, spacing,
                    new_spacing, smooth=False, calc_projection=False, poses=[],
                    resolution_scale=1.0, sample_rate=[1, 1], show_projection=False):
     print("Preprocessing data...")
 
     img_0, mask_0, bbox_0 = load_IMG(source_file, shape, spacing, new_spacing)
     img_1, mask_1, bbox_1 = load_IMG(target_file, shape, spacing, new_spacing)
-
-    # plt.imshow(mask_0[20])
-    # plt.show()
 
     # Figure out the bbox size
     bbox = np.ndarray((6)).astype(np.int)
@@ -214,21 +219,21 @@ def preprocessData(source_file, target_file, dest_folder, shape, spacing,
         img_1 = smoother(img_1, sigma=2)
 
     # Save the 3d image
-    np.save(dest_folder + "/I0_3d.npy", img_0)
-    np.save(dest_folder + "/I1_3d.npy", img_1)
+    np.save(dest_folder + "/" + dest_prefix + "_I0_3d.npy", img_0)
+    np.save(dest_folder + "/" + dest_prefix + "_I1_3d.npy", img_1)
     
-    np.save(dest_folder + "/prop.npy", prop)
+    np.save(dest_folder + "/" + dest_prefix + "_prop.npy", prop)
 
     # Calculate the projection image
     if calc_projection:
         device = torch.device("cuda")
         img_proj_0 = calculate_projection(img_0, poses, resolution_scale,
                                           sample_rate, device)
-        np.save(dest_folder + "/I0_proj.npy", img_proj_0)
+        np.save(dest_folder + "/" + dest_prefix + "_I0_proj.npy", img_proj_0)
 
         img_proj_1 = calculate_projection(img_1, poses, resolution_scale,
                                           sample_rate, device)
-        np.save(dest_folder + "/I1_proj.npy", img_proj_1)
+        np.save(dest_folder + "/" + dest_prefix + "_I1_proj.npy", img_proj_1)
 
         if show_projection:
             step = min(1, int(img_proj_0.shape[0]/10))
@@ -236,8 +241,37 @@ def preprocessData(source_file, target_file, dest_folder, shape, spacing,
             for i in range(0, img_proj_0.shape[0]):
                 ax[0, i].imshow(img_proj_0[i])
                 ax[1, i].imshow(img_proj_1[i])
-            # plt.savefig("./data/projections.png")
-            plt.show()
+            plt.savefig("./data/projections.png")
+            # plt.show()
 
 if __name__ == "__main__":
-    pass
+    # lung_reg_params = pars.ParameterDict()
+    # lung_reg_params.load_JSON(args.setting)
+
+    # torch.autograd.set_detect_anomaly(True)
+    # #############################
+    # # Data Preprocessing
+    # resolution_scale = 1.5
+    # new_spacing = [1.5, 1.5, 1.5]
+    # sample_rate = [int(1), int(1), int(1)]
+
+    # shape = lung_reg_params["shape"]
+    # spacing = lung_reg_params["spacing"]
+    # preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    # prefix = lung_reg_params["source_img"].split("/")[-3]
+    # if (lung_reg_params["recompute_preprocessed"]):
+    # #    os.path.exists(preprocessed_folder + "/" + prefix + "_I0_3d.npy") and \
+    # #    os.path.exists(preprocessed_folder + "/" + prefix + "_I1_proj.npy")):
+    #     preprocessData(lung_reg_params["source_img"],
+    #                 lung_reg_params["target_img"],
+    #                 preprocessed_folder,
+    #                 prefix,
+    #                 shape,
+    #                 spacing,
+    #                 new_spacing,
+    #                 smooth=True,
+    #                 calc_projection=True,
+    #                 poses=poses,
+    #                 resolution_scale=resolution_scale,
+    #                 sample_rate=sample_rate,
+    #                 show_projection=True)

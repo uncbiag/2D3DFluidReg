@@ -8,9 +8,12 @@ import torch
 from mermaid import image_sampling
 from CTPlayground import resample
 import mermaid.module_parameters as pars
-
-
 from mermaid import utils as utils
+import argparse
+
+parser = argparse.ArgumentParser(description='Show registration result')
+parser.add_argument('--setting', '-s', metavar='SETTING', default='',
+                    help='setting')
 
 def plot_grid(ax, gridx,gridy, **kwargs):
     for i in range(gridx.shape[0]):
@@ -92,127 +95,141 @@ class ImageViewer3D_Sliced_Grids(viewers.ImageViewer3D_Sliced):
         self.show_grids()
 
 
-# Load Params
-path = "./lung_registration_setting.json"
-lung_reg_params = pars.ParameterDict()
-lung_reg_params.load_JSON(path)
+def show_in_mermaid(args):
+    # Load Params
+    lung_reg_params = pars.ParameterDict()
+    lung_reg_params.load_JSON(args.setting)
 
-I0_file = lung_reg_params["preprocessed_folder"] + "/I0_3d.npy"
-disp_file = lung_reg_params["affine"]["disp_file"]
-warped_file = lung_reg_params["affine"]["warped_file"]
+    SHOW_SDT = False
+    SHOW_CT_IMG = False
+    SHOW_DISP = True
+    SHOW_DEMO_NPY = True
 
-sDT_dicom = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
-ct_IMG = "../eval_data/copd1/copd1/copd1_eBHCT.img"
-demo_npy = lung_reg_params["preprocessed_folder"] + "/I1_3d.npy"
-affine_phi = lung_reg_params["affine"]["disp_file"]
+    preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    prefix = lung_reg_params["source_img"].split("/")[-3]
 
-# if using synthetic data
-# I0_file = lung_reg_params["source_file_synthetic"]
-# disp_file = lung_reg_params["disp_file"]
-# warped_file = lung_reg_params["warped_file"]
-# demo_npy = lung_reg_params["target_file_synthetic"]
+    I0_file = preprocessed_folder + "/" + prefix + "_I0_3d.npy"
+    disp_file = lung_reg_params["projection"]["disp_file"]
+    warped_file = lung_reg_params["projection"]["warped_file"]
 
-SHOW_SDT = False
-SHOW_CT_IMG = False
-SHOW_DISP = False
-SHOW_DEMO_NPY = True
+    if SHOW_SDT:
+        I1_file = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
+    elif SHOW_CT_IMG:
+        I1_file = "../eval_data/copd1/copd1/copd1_eBHCT.img"
+    elif SHOW_DEMO_NPY:
+        I1_file =  preprocessed_folder + "/" + prefix + "_I1_3d.npy"
+    affine_phi = lung_reg_params["affine"]["disp_file"]
 
-prop = np.load(lung_reg_params["preprocessed_folder"] + "/prop.npy", allow_pickle=True)
-dim = np.array(prop.item().get("dim"))
+    # if using synthetic data
+    # I0_file = lung_reg_params["source_file_synthetic"]
+    # disp_file = lung_reg_params["disp_file"]
+    # warped_file = lung_reg_params["warped_file"]
+    # demo_npy = lung_reg_params["target_file_synthetic"]
 
-spacing = dim/np.array([1.5,1.5,1.5])
-# spacing = np.array([64, 64, 64])
-# affine_phi = torch.from_numpy(np.load(affine_phi)[0])
-# I0 = utils.compute_warped_image(torch.from_numpy(np.load(I0_file)), affine_phi, 1./(spacing-1.), 1).cpu() 
-I0 = np.load(I0_file)
-phi = np.swapaxes(np.multiply(np.swapaxes(np.load(disp_file)[0],0,3), spacing), 0, 3)
-warped = np.load(warped_file)[0,0]
+    SHOW_SDT = False
+    SHOW_CT_IMG = False
+    SHOW_DISP = False
+    SHOW_DEMO_NPY = True
 
-d, w, h = I0.shape
+    prop = np.load(lung_reg_params["preprocessed_folder"] + "/prop.npy", allow_pickle=True)
+    dim = np.array(prop.item().get("dim"))
 
-if SHOW_SDT:
-    file_list = os.listdir(sDT_dicom)
-    file_list.sort()
-    case  = [dicom.read_file(sDT_dicom + '/' + s) for s in file_list]
-    image = np.stack([s.pixel_array for s in case])
-    image = np.transpose(image, (1,0,2))
-    image = image[:2100,:,:]
-    image = image.astype(np.float32)
-    I1 = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).to(torch.device("cuda"))
-    spacing = np.array([1., 1., 1.])
-    sampler = image_sampling.ResampleImage()
-    sdt, spacing = sampler.downsample_image_by_factor(I1, spacing, scalingFactor=0.48)
-    sdt = sdt.detach().cpu().numpy()[0,0]
+    spacing = dim/np.array([1.5, 1.5, 1.5])
+    # spacing = np.array([64, 64, 64])
+    # affine_phi = torch.from_numpy(np.load(affine_phi)[0])
+    # I0 = utils.compute_warped_image(torch.from_numpy(np.load(I0_file)), affine_phi, 1./(spacing-1.), 1).cpu() 
+    I0 = np.load(I0_file)
+    phi = np.swapaxes(np.multiply(np.swapaxes(np.load(disp_file)[0], 0, 3), spacing), 0, 3)
+    warped = np.load(warped_file)[0,0]
 
-if SHOW_CT_IMG:
-    shape = dim
-    spacing = [2.5, 0.625, 0.625]
-    dtype = np.dtype("<i2")
-    fid = open(ct_IMG, 'rb')
-    data = np.fromfile(fid, dtype)
-    image = data.reshape(shape)
-    ct_img, spacing = resample(image, np.array(spacing), [1,1,1])
-    image = image.astype(np.float32)
-    ct_img[ct_img<0] = 1000
-    ct_img = (-ct_img/1000.0+1)*1.673
-    I1 = torch.from_numpy(ct_img).unsqueeze(0).unsqueeze(0).to(torch.device("cuda"))
-    spacing = np.array([1., 1., 1.])
-    sampler = image_sampling.ResampleImage()
-    ct_img, spacing = sampler.downsample_image_by_factor(I1, spacing, scalingFactor=0.2)
-    ct_img = ct_img.detach().cpu().numpy()[0,0]
+    d, w, h = I0.shape
 
-if SHOW_DEMO_NPY:
-    image = np.load(demo_npy)
+    if SHOW_SDT:
+        file_list = os.listdir(I1_file)
+        file_list.sort()
+        case  = [dicom.read_file(I1_file + '/' + s) for s in file_list]
+        image = np.stack([s.pixel_array for s in case])
+        image = np.transpose(image, (1,0,2))
+        image = image[:2100,:,:]
+        image = image.astype(np.float32)
+        I1 = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).to(torch.device("cuda"))
+        spacing = np.array([1., 1., 1.])
+        sampler = image_sampling.ResampleImage()
+        sdt, spacing = sampler.downsample_image_by_factor(I1, spacing, scalingFactor=0.48)
+        sdt = sdt.detach().cpu().numpy()[0,0]
 
-fig,ax = plt.subplots(3, 3)
+    elif SHOW_CT_IMG:
+        shape = dim
+        spacing = [2.5, 0.625, 0.625]
+        dtype = np.dtype("<i2")
+        fid = open(I1_file, 'rb')
+        data = np.fromfile(fid, dtype)
+        image = data.reshape(shape)
+        ct_img, spacing = resample(image, np.array(spacing), [1,1,1])
+        image = image.astype(np.float32)
+        ct_img[ct_img < 0] = 1000
+        ct_img = (-ct_img/1000.0+1)*1.673
+        I1 = torch.from_numpy(ct_img).unsqueeze(0).unsqueeze(0).to(torch.device("cuda"))
+        spacing = np.array([1., 1., 1.])
+        sampler = image_sampling.ResampleImage()
+        ct_img, spacing = sampler.downsample_image_by_factor(I1, spacing, scalingFactor=0.2)
+        ct_img = ct_img.detach().cpu().numpy()[0,0]
 
-plt.setp(plt.gcf(), 'facecolor', 'white')
-plt.style.use('bmh')
+    elif SHOW_DEMO_NPY:
+        image = np.load(I1_file)
+
+    fig, ax = plt.subplots(3, 3)
+
+    plt.setp(plt.gcf(), 'facecolor', 'white')
+    plt.style.use('bmh')
+
+    ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Source Image - Z slice')
+    ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'Source Image - X slice')
+    ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Source Image - Y slice')
+
+    if not SHOW_DISP:
+        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Warped Image - Z slice')
+        warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'Warped Image - X slice')
+        warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Warped Image - Y slice')
+    else:
+        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'warped Image - Z slice')
+        warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'warped Image - X slice')
+        warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'warped Image - Y slice')
+
+    if SHOW_SDT:
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Target Image - Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'Target Image - X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Target Image - Y slice')
+    elif SHOW_CT_IMG:
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Target Image - Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'Target Image - X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Target Image - Y slice')
+    elif SHOW_DEMO_NPY:
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], image, 0, 'Target Image - Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], image, 1, 'Target Image - X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], image, 2, 'Target Image - Y slice')
+        
+    feh = viewers.FigureEventHandler(fig)
+
+    feh.add_axes_event('button_press_event', ax[0,0], ivx.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[0,1], ivy.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[0,2], ivz.on_mouse_press)
+
+    feh.add_axes_event('button_press_event', ax[1,0], warped_ivx.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[1,1], warped_ivy.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[1,2], warped_ivz.on_mouse_press)
+
+    if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
+        feh.add_axes_event('button_press_event', ax[2,0], warped_ivx_grids.on_mouse_press)
+        feh.add_axes_event('button_press_event', ax[2,1], warped_ivy_grids.on_mouse_press)
+        feh.add_axes_event('button_press_event', ax[2,2], warped_ivz_grids.on_mouse_press)
+
+    feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
+
+    plt.show()
+    # plt.savefig("./data/imageViewer.png", dpi=200)
 
 
-ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Source Image - Z slice')
-ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'Source Image - X slice')
-ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Source Image - Y slice')
-
-if not SHOW_DISP:
-    warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Warped Image - Z slice')
-    warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'Warped Image - X slice')
-    warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Warped Image - Y slice')
-else:
-    warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'warped Image - Z slice')
-    warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'warped Image - X slice')
-    warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'warped Image - Y slice')
-
-if SHOW_SDT:
-    warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Target Image - Z slice')
-    warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'Target Image - X slice')
-    warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Target Image - Y slice')
-elif SHOW_CT_IMG:
-    warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Target Image - Z slice')
-    warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'Target Image - X slice')
-    warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Target Image - Y slice')
-elif SHOW_DEMO_NPY:
-    warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], image, 0, 'Target Image - Z slice')
-    warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], image, 1, 'Target Image - X slice')
-    warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], image, 2, 'Target Image - Y slice')
-    
-
-feh = viewers.FigureEventHandler(fig)
-
-feh.add_axes_event('button_press_event', ax[0,0], ivx.on_mouse_press)
-feh.add_axes_event('button_press_event', ax[0,1], ivy.on_mouse_press)
-feh.add_axes_event('button_press_event', ax[0,2], ivz.on_mouse_press)
-
-feh.add_axes_event('button_press_event', ax[1,0], warped_ivx.on_mouse_press)
-feh.add_axes_event('button_press_event', ax[1,1], warped_ivy.on_mouse_press)
-feh.add_axes_event('button_press_event', ax[1,2], warped_ivz.on_mouse_press)
-
-if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
-    feh.add_axes_event('button_press_event', ax[2,0], warped_ivx_grids.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[2,1], warped_ivy_grids.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[2,2], warped_ivz_grids.on_mouse_press)
-
-feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
-
-plt.show()
-# plt.savefig("./data/imageViewer.png", dpi=200)
+if __name__ == "__main__":
+    args = parser.parse_args()
+    show_in_mermaid(args)

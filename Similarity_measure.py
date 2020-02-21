@@ -124,10 +124,14 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         grad_sim = 0.
         proj_res = [I1.shape[2], I1.shape[3]]
 
+        # idx = torch.multinomial(torch.ones([len(self.emi_poses)]), 3)
+
         # Version 1. Compute grids every iteration
         for i in range(len(self.emi_poses)):
-            grids = torch.flip(self._project_grid(self.emi_poses[i], proj_res, self.sample_rate, I0.shape[2:], self.spacing, I0.device), [3]).unsqueeze(0)
-            I0_proj = torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4)
+            grids, dx = self._project_grid(self.emi_poses[i], proj_res, self.sample_rate, I0.shape[2:], self.spacing, I0.device)
+            grids = torch.flip(grids, [3]).unsqueeze(0)
+            dx = dx.unsqueeze(0).unsqueeze(0)
+            I0_proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4), dx)
             # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:])
 
         #Calculate projection
@@ -202,8 +206,10 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         return sim/len(self.emi_poses) #/self.sigma**2
 
     def project(self, I0, emi_poses, proj_res, sample_rate):
-        grid = torch.flip(self._project_grid(emi_poses, proj_res, sample_rate, I0.shape[2:], self.spacing, I0.device), [3])
-        proj = torch.sum(F.grid_sample(I0, grid.unsqueeze(0), align_corners = False), dim=4)
+        grid, dx = self._project_grid(emi_poses, proj_res, sample_rate, I0.shape[2:], self.spacing, I0.device)
+        grid = torch.flip(grid, [3]).unsqueeze(0)
+        dx = dx.unsqueeze(0).unsqueeze(0)
+        proj = torch.mul(torch.sum(F.grid_sample(I0, grid, align_corners = False), dim=4), dx)
         del grid
         return proj
 
@@ -244,6 +250,7 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         I[:,:,2] = grid_y
         I = torch.add(I,-I0)
         I = I/torch.norm(I, dim=2, keepdim=True)
+        dx = torch.abs(torch.mul(torch.ones((I.shape[0],I.shape[1]), device=device),1./I[:,:,1]))
 
         # Define a line as I(t)=I0+t*I
         # Define a plane as (P-P0)*N=0, P is a vector of points on the plane
@@ -259,5 +266,5 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         grid[:,:,:,0] = grid[:,:,:,0]/obj_shape[0]*2.0
         grid[:,:,:,1] = (grid[:,:,:,1]-0.)/obj_shape[1]*2.0 + -1.
         grid[:,:,:,2] = grid[:,:,:,2]/obj_shape[2]*2.0
-        return grid
+        return grid, dx
 
