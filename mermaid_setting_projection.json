@@ -130,7 +130,7 @@
                 "sigma": 0.1,
                 "type": "ncc",
                 "projection":{
-                    "base":"ncc"
+                    "base":"omt"
                 }
             },
             "spline_order": 1,

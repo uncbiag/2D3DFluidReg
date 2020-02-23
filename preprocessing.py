@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from CTPlayground import resample
+import os
 
 import matplotlib.pyplot as plt
 
@@ -56,8 +57,8 @@ def seg_bg_mask(img, only_lung):
         good_labels_bbox = []
         for prop in regions:
             B = prop.bbox
-            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
-            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
+            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
+            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
                 good_labels.append(prop.label)
                 good_labels_bbox.append(prop.bbox)
         mask = np.ndarray([D,W,H],dtype=np.int8)
@@ -108,7 +109,7 @@ def load_IMG(file_path, shape, spacing, new_spacing):
 
     # for i in range(0,10):
     #     plt.imshow((mask*image)[:,:,419-i*2])
-    #     plt.savefig("./data/image_%i.jpg"%i)
+    #     plt.savefig("./log/image_%i.jpg"%i)
     
     image = image.astype(np.float32)
     image_max = np.max(image)
@@ -173,7 +174,7 @@ def calculate_projection(img, poses, resolution_scale, sample_rate, device):
         grid = torch.flip(grid,[3])
         dx = dx.unsqueeze(0).unsqueeze(0)
         projections[0, i] = torch.mul(torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=False), dim=4), dx)[0, 0]
-        # np.save("./data/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
+        # np.save("./log/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
         del grid
         torch.cuda.empty_cache()
         
@@ -218,6 +219,9 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
         img_0 = smoother(img_0, sigma=2)
         img_1 = smoother(img_1, sigma=2)
 
+    if not os.path.exists(dest_folder):
+        os.mkdir(dest_folder)
+
     # Save the 3d image
     np.save(dest_folder + "/" + dest_prefix + "_I0_3d.npy", img_0)
     np.save(dest_folder + "/" + dest_prefix + "_I1_3d.npy", img_1)
@@ -241,7 +245,7 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
             for i in range(0, img_proj_0.shape[0]):
                 ax[0, i].imshow(img_proj_0[i])
                 ax[1, i].imshow(img_proj_1[i])
-            plt.savefig("./data/" + dest_prefix + "_projections.png")
+            plt.savefig("./log/" + dest_prefix + "_projections.png")
             # plt.show()
 
 if __name__ == "__main__":

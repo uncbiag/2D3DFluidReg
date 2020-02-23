@@ -127,21 +127,21 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             grids = torch.flip(grids, [3]).unsqueeze(0)
             dx = dx.unsqueeze(0).unsqueeze(0)
             I0_proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4), dx)
-            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
+            proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
             # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
             
             
             #Calculate gradient similarity
-            g_I0 = self._image_gradient(I0_proj, I0.device)
-            g_I1 = self._image_gradient(I1[:,i:i+1,:,:], I0.device)
-            volumeElement = I1.shape[2]*I1.shape[3]
-            # temp = F.cosine_similarity(g_I0, g_I1, dim=4, eps=1e-16)
-            cross = torch.bmm(g_I0.view(-1,1,2), g_I1.view(-1,2,1)).view(-1,1) + 1e-9
-            norm = torch.mul(torch.norm(g_I0.view(-1,2),dim=1), 
-                            torch.norm(g_I1.view(-1,2),dim=1)) + 1e-9
-            sim_per_pix = 1. - torch.div(cross.view(-1), norm)
-            grad_sim = torch.sum(sim_per_pix)/volumeElement/self.sigma
-            proj_sim = proj_sim + grad_sim
+            # g_I0 = self._image_gradient(I0_proj, I0.device)
+            # g_I1 = self._image_gradient(I1[:,i:i+1,:,:], I0.device)
+            # volumeElement = I1.shape[2]*I1.shape[3]
+            # # temp = F.cosine_similarity(g_I0, g_I1, dim=4, eps=1e-16)
+            # cross = torch.bmm(g_I0.view(-1,1,2), g_I1.view(-1,2,1)).view(-1,1) + 1e-9
+            # norm = torch.mul(torch.norm(g_I0.view(-1,2),dim=1), 
+            #                 torch.norm(g_I1.view(-1,2),dim=1)) + 1e-9
+            # sim_per_pix = 1. - torch.div(cross.view(-1), norm)
+            # grad_sim = torch.sum(sim_per_pix)/volumeElement/self.sigma
+            # proj_sim = proj_sim + grad_sim
 
         sim = proj_sim # + 0.6*grad_sim
 
@@ -181,13 +181,13 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         #     fig.colorbar(diff, ax = axes[i,6])
 
         # # plt.show()
-        # plt.savefig("./data/gradient_1.png")
+        # plt.savefig("./log/gradient_1.png")
 
         # fig, axes = plt.subplots(3,1)
         # for i in range(3):
         #     axes[i].imshow(temp.view(11,I1.shape[2], I1.shape[3])[i*2,:,:].detach().cpu().numpy())
 
-        # plt.savefig("./data/gradient_dif.png")
+        # plt.savefig("./log/gradient_dif.png")
 
 
         return sim/len(self.emi_poses) #/self.sigma**2

@@ -1,5 +1,5 @@
 .vscode
-data
+log
 .code-workspace.code-workspace
 *.pyc
 results

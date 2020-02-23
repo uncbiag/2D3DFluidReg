@@ -1,0 +1,21 @@
+{
+    "source_img":"./data/copd1/img/copd1_iBHCT.img",
+    "target_img":"./data/copd1/img/copd1_eBHCT.img",
+    "preprocessed_folder":"./data/preprocessed",
+    "recompute_preprocessed":false,
+    "shape":[121,512,512],
+    "spacing":[2.5,0.625,0.625],
+
+    "eval_marker_source_file":"./data/copd1/copd1_300_iBH_xyz_r1.txt",
+    "eval_marker_target_file":"./data/copd1/copd1_300_eBH_xyz_r1.txt",
+
+    "affine":{
+        "run" : true,
+        "setting":"./mermaid_setting_affine.json"
+    },
+    "deformable":{
+        "run":true,
+        "use_affine":true,
+        "setting":"./mermaid_setting_projection.json"
+    }
+}

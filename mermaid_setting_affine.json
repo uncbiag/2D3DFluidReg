@@ -130,7 +130,7 @@
                 "sigma": 0.008,
                 "type": "ssd",
                 "projection":{
-                    "base":"ssd"
+                    "base":"omt"
                 }
             },
             "spline_order": 1,

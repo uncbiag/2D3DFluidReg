@@ -177,7 +177,7 @@ def main(args):
         opt.get_optimizer().set_visualize_step(5)
         opt.register()
 
-        # # opt.get_optimizer().save_checkpoint("./data/checkpoint")
+        # # opt.get_optimizer().save_checkpoint("./log/checkpoint")
 
         # ###############################
         # # Save the results

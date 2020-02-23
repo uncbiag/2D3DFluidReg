@@ -229,7 +229,7 @@ def show_in_mermaid(args):
     feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
 
     plt.show()
-    # plt.savefig("./data/imageViewer.png", dpi=200)
+    # plt.savefig("./log/imageViewer.png", dpi=200)
 
 
 if __name__ == "__main__":
