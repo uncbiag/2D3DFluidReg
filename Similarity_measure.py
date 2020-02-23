@@ -95,7 +95,7 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             self.sim = OptimalMassTransportSimilarity(spacing[0::2], params)
         else:
             self.sim = SSDSimilarity(spacing[0::2], params)
-        self.emi_poses = self.params['emitter_pos_list']/spacing + 1
+        self.emi_poses = self.params['emitter_pos_list']/spacing+1
         self.proj_res_scale = self.params['resolution_scale']
         self.sample_rate = self.params["sample_rate"]
         self.grids = None
@@ -103,13 +103,6 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         self.y_gradient_filter = torch.Tensor([[1,2,1],[0,0,0],[-1,-2,-1]]).view(1,1,3,3)
         self.volumeElement = spacing[0]*spacing[2]
         self.sigma = self.params['similarity_measure']['sigma']
-
-        # For experiments purpose
-        self.source_list = np.load("./data/points.npy")
-        self.target_list = readPoint("../eval_data/copd1/copd1/copd1_300_eBH_xyz_r1.txt")
-        self.dim = np.array([250, 214, 303])
-        self.origin = np.array([55, 103, 1])
-        self.spacing = np.array([0.625, 0.625, 2.5])
 
     def compute_similarity(self, I0, I1, I0Source=None, phi=None):
         """
