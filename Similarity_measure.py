@@ -1,4 +1,4 @@
-from mermaid.similarity_measure_factory import SimilarityMeasure, NCCSimilarity, LNCCSimilarity, SSDSimilarity
+from mermaid.similarity_measure_factory import SimilarityMeasure, NCCSimilarity, LNCCSimilarity, SSDSimilarity, OptimalMassTransportSimilarity
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -91,6 +91,8 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             self.sim = NCCSimilarity(spacing[0::2], params)
         elif self.params["similarity_measure"]["projection"]["base"] == "lncc":
             self.sim = LNCCSimilarity(spacing[0::2], params)
+        elif self.params["similarity_measure"]["projection"]["base"] == "omt":
+            self.sim = OptimalMassTransportSimilarity(spacing[0::2], params)
         else:
             self.sim = SSDSimilarity(spacing[0::2], params)
         self.emi_poses = self.params['emitter_pos_list']/spacing + 1
@@ -132,17 +134,9 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             grids = torch.flip(grids, [3]).unsqueeze(0)
             dx = dx.unsqueeze(0).unsqueeze(0)
             I0_proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4), dx)
-            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:])
-
-        #Calculate projection
-        # if self.grids is None:
-        #     self.grids = torch.zeros([len(self.emi_poses), 1, proj_res[0]*self.sample_rate[0], proj_res[1]*self.sample_rate[2], I0.shape[3]*self.sample_rate[1], 3],device=I0.device)
-        #     for i in range(len(self.emi_poses)):
-        #         self.grids[i] = torch.flip(self._project_grid(self.emi_poses[i], proj_res, self.sample_rate, I0.shape[2:], self.spacing, I0.device), [3])
-
-        # for i in range(len(self.emi_poses)):
-        #     I0_proj = torch.sum(F.grid_sample(I0, self.grids[i], align_corners = False), dim=4)
-        #     proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:])
+            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
+            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
+            
             
             #Calculate gradient similarity
             g_I0 = self._image_gradient(I0_proj, I0.device)

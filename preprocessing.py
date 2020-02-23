@@ -56,8 +56,8 @@ def seg_bg_mask(img, only_lung):
         good_labels_bbox = []
         for prop in regions:
             B = prop.bbox
-            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
-            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
+            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
+            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
                 good_labels.append(prop.label)
                 good_labels_bbox.append(prop.bbox)
         mask = np.ndarray([D,W,H],dtype=np.int8)
@@ -241,37 +241,8 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
             for i in range(0, img_proj_0.shape[0]):
                 ax[0, i].imshow(img_proj_0[i])
                 ax[1, i].imshow(img_proj_1[i])
-            plt.savefig("./data/projections.png")
+            plt.savefig("./data/" + dest_prefix + "_projections.png")
             # plt.show()
 
 if __name__ == "__main__":
-    # lung_reg_params = pars.ParameterDict()
-    # lung_reg_params.load_JSON(args.setting)
-
-    # torch.autograd.set_detect_anomaly(True)
-    # #############################
-    # # Data Preprocessing
-    # resolution_scale = 1.5
-    # new_spacing = [1.5, 1.5, 1.5]
-    # sample_rate = [int(1), int(1), int(1)]
-
-    # shape = lung_reg_params["shape"]
-    # spacing = lung_reg_params["spacing"]
-    # preprocessed_folder = lung_reg_params["preprocessed_folder"]
-    # prefix = lung_reg_params["source_img"].split("/")[-3]
-    # if (lung_reg_params["recompute_preprocessed"]):
-    # #    os.path.exists(preprocessed_folder + "/" + prefix + "_I0_3d.npy") and \
-    # #    os.path.exists(preprocessed_folder + "/" + prefix + "_I1_proj.npy")):
-    #     preprocessData(lung_reg_params["source_img"],
-    #                 lung_reg_params["target_img"],
-    #                 preprocessed_folder,
-    #                 prefix,
-    #                 shape,
-    #                 spacing,
-    #                 new_spacing,
-    #                 smooth=True,
-    #                 calc_projection=True,
-    #                 poses=poses,
-    #                 resolution_scale=resolution_scale,
-    #                 sample_rate=sample_rate,
-    #                 show_projection=True)
+    pass

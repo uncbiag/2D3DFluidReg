@@ -1,3 +1,5 @@
 .vscode
 data
 .code-workspace.code-workspace
+*.pyc
+results

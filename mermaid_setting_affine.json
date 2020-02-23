@@ -127,7 +127,7 @@
                         ]
                     ]
                 },
-                "sigma": 0.005,
+                "sigma": 0.008,
                 "type": "ssd",
                 "projection":{
                     "base":"ssd"
@@ -142,13 +142,24 @@
         "gradient_clipping": {
             "clip_display": true,
             "clip_individual_gradient": true,
-            "clip_individual_gradient_value": 64.0,
+            "clip_individual_gradient_value": 32.0,
             "clip_shared_gradient": true,
             "clip_shared_gradient_value": 1.0
         },
         "sgd": {
-            "individual":{
-                "lr":1e-4
+            "individual": {
+                "dampening": 0.0,
+                "lr": 1e-4,
+                "momentum": 0.9,
+                "nesterov": true,
+                "weight_decay": 0.0
+            },
+            "shared": {
+                "dampening": 0.0,
+                "lr": 1e-4,
+                "momentum": 0.9,
+                "nesterov": true,
+                "weight_decay": 0.0
             }
         },
         "name": "sgd",
@@ -163,7 +174,7 @@
         },
         "multi_scale": {
             "scale_factors":[1.0, 0.5, 0.25],
-            "scale_iterations":[10, 10, 10]
+            "scale_iterations":[1000, 1000, 1000]
         },
         "use_step_size_scheduler": true,
         "weight_clipping_type": "none",

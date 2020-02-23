@@ -13,6 +13,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Show registration result')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
+parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
+                    help='Path of the folder contains displacement files.')
 
 def readPoint(f_path):
     """
@@ -302,12 +304,13 @@ if __name__ == "__main__":
     # Load Params
     lung_reg_params = pars.ParameterDict()
     lung_reg_params.load_JSON(args.setting)
+    disp_folder = args.disp_f
     
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
     source_file = lung_reg_params["eval_marker_source_file"]
     target_file = lung_reg_params["eval_marker_target_file"]
-    phi_file = lung_reg_params["projection"]["disp_inverse_file"]
+    phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
     prop_file = lung_reg_params["preprocessed_folder"] + '/' + prefix +'_prop.npy'
     
     prop = np.load(prop_file, allow_pickle=True)
@@ -317,35 +320,20 @@ if __name__ == "__main__":
 
     eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
-    # phi_file = "./data/disp_affine.npy"
-    # eval_with_file(source_file, target_file, phi_file, dim, spacing, False)
-
     # ct_source_file = "../eval_data/preprocessed/ihale_3d.npy"
     # ct_target_file = "../eval_data/preprocessed/ehale_3d.npy"
     # plot_marker_distribution(source_file, target_file, spacing, ct_source_file, ct_target_file, np.array([4., 4., 4.]))
 
     ct_source_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I0_3d.npy"
     ct_target_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I1_3d.npy"
-    warped_file = lung_reg_params["projection"]["warped_file"]
+    warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
 
-    # dim = np.array([512.0, 512.0, 121.])
-
-    # plot_one_marker(source_file,
-    #                 target_file, 
-    #                 phi_file, 
-    #                 dim, spacing, 
-    #                 ct_source_file, 
-    #                 ct_target_file, 
-    #                 warped_file, 
-    #                 np.array([4., 4., 4.]),
-    #                 "svf")
-
-    # plot_marker_deformation(source_file, 
-    #                         target_file, 
-    #                         phi_file, 
-    #                         dim, spacing, origin, 
-    #                         ct_source_file, 
-    #                         ct_target_file, 
-    #                         warped_file, 
-    #                         np.array([1.5, 1.5, 1.5]),
-    #                         "lddmm")
+    plot_marker_deformation(source_file, 
+                            target_file, 
+                            phi_file, 
+                            dim, spacing, origin, 
+                            ct_source_file, 
+                            ct_target_file, 
+                            warped_file, 
+                            np.array([1.5, 1.5, 1.5]),
+                            "lddmm")

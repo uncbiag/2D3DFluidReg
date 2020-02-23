@@ -10,6 +10,8 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 
+import Similarity_measure
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -29,38 +31,35 @@ case_pixels = np.load(preprocessed_file_folder+'/ct.npy')
 I0 = torch.from_numpy(case_pixels).unsqueeze(0).unsqueeze(0)
 spacing = np.array([1., 1., 1.])
 sampler = mermaid.image_sampling.ResampleImage()
-I0, spacing = sampler.downsample_image_by_factor(I0, spacing, scalingFactor=0.1)
+I0, spacing = sampler.downsample_image_by_factor(I0, spacing, scalingFactor=0.2)
 I0 = I0.to(device)
-spacing = np.array([1., 1., 1.])
 
 
 ###############################
 # Get sDT Projections
-def get_theta_tensor(pos):
-    tan_theta_x = -np.arctan(pos[1]/pos[2])
-    return tan_theta_x
-
-
-def downsample(img, sampler, desiredShape):
-    sampled, spacing = sampler.downsample_image_to_size(torch.from_numpy(img).unsqueeze(0).unsqueeze(0), np.array([1, 1]), np.array(desiredShape), 0)
-    sampled = sampled.to(device)
-    return sampled
-
 
 projectionPos_file_path = '../../Data/Raw/NoduleStudyProjections/001/projectionPos.csv'
 projectionDicom_path = '../../Data/Raw/NoduleStudyProjections/001/DICOM'
 poses = pd.read_csv(projectionPos_file_path).to_numpy()
-theta_list = [get_theta_tensor(p) for p in poses]
+poses_ct_space = np.zeros(poses.shape, dtype=np.float32)
+poses_ct_space[:,0] = poses[:,1]
+poses_ct_space[:,1] = poses[:,2]
+poses_ct_space[:,2] = poses[:,0]
+poses_ct_space = poses_ct_space/spacing
+
 case = np.load(preprocessed_file_folder+'/projection.npy').astype(np.float32)
 case_torch = torch.from_numpy(case).unsqueeze(1).to(device)
-case_torch = F.interpolate(case_torch, (I0.shape[2], I0.shape[4]))
+case_torch, spac = sampler.downsample_image_by_factor(case_torch, np.array([1., 1.]), scalingFactor=0.03)
 I1 = case_torch.permute(1,0,2,3)
+I1 = I1.to(device)
 
 ###############################
 # Set params
-params['model']['registration_model']['theta_list'] = theta_list
-params['optimizer']['sgd']['individual']['lr'] = 0.1
-params['optimizer']['single_scale']['nr_of_iterations'] = 200
+params['model']['registration_model']['emitter_pos_list'] = poses_ct_space.tolist()
+params['model']['registration_model']['projection_resolution'] = [int(I1.shape[2]), int(I1.shape[3])]
+params['model']['registration_model']['sample_rate'] = [int(1), int(1)]
+#params['optimizer']['sgd']['individual']['lr'] = 0.1
+params['optimizer']['single_scale']['nr_of_iterations'] = 10
 params['model']['registration_model']['similarity_measure']['type'] = "sdtctprojection"
 print(params)
 
@@ -87,12 +86,30 @@ print(params)
 #     I1[0, i] = project_diagonal(I1_3d, torch.tensor((theta_list[i])))[0, 0]
 
 # params.load_JSON('step_by_step_example_data.json')
+# params['model']['registration_model']['similarity_measure']['type'] = "SdtCTParallelProjection"
 # params['model']['registration_model']['theta_list'] = theta_list
 
 
 #################################
 # Performing the registration
 sz = np.array(I0.shape)
+spacing = np.array([1., 1., 1.])
+# params['model']['registration_model']['type'] = "affine_map"
+# params['model']['registration_model']['similarity_measure']['sigma'] = 1.
+# affine_opt = MO.SimpleSingleScaleRegistration(I0,
+#                                                    I1,
+#                                                    spacing,
+#                                                    sz,
+#                                                    params,
+#                                                    compute_inverse_map=False)
+# affine_opt.get_optimizer().set_visualization(True)
+# affine_opt.get_optimizer().set_visualize_step(5)
+# affine_opt.register()
+
+# I0 = affine_opt.get_warped_image().detach()
+
+params['model']['registration_model']['type'] = "svf_vector_momentum_map"
+params['model']['registration_model']['similarity_measure']['sigma'] = 0.1
 opt = MO.SimpleSingleScaleRegistration(I0,
                                        I1,
                                        spacing,
@@ -100,12 +117,17 @@ opt = MO.SimpleSingleScaleRegistration(I0,
                                        params,
                                        compute_inverse_map=False)
 
+opt.get_optimizer().set_model(params['model']['registration_model']['type'])
+opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
+
 opt.get_optimizer().set_visualization(True)
 opt.get_optimizer().set_visualize_step(20)
 opt.register()
 
 ###############################
 # Save the results
-np.save("./data/input2.npy", I0.detach().cpu().numpy())
-np.save("./data/disp2.npy", opt.get_map().detach().cpu().numpy())
-np.save("./data/warped2.npy", opt.get_warped_image().detach().cpu().numpy())
+np.save("./data/input_noMask_large.npy", I0.detach().cpu().numpy())
+np.save("./data/disp_noMask_large.npy", opt.get_map().detach().cpu().numpy())
+np.save("./data/warped_noMask_large.npy", opt.get_warped_image().detach().cpu().numpy())
+params.write_JSON(path)
+

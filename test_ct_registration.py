@@ -41,10 +41,16 @@ poses = np.array([#[-1., 2., -1.],
 parser = argparse.ArgumentParser(description='3D/2D registration')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
+parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
+                    help='Path of the folder contains displacement files.')                    
 
 def main(args):
     lung_reg_params = pars.ParameterDict()
     lung_reg_params.load_JSON(args.setting)
+
+    exp_path = args.disp_f
+    if not os.path.exists(exp_path):
+        os.makedirs(exp_path, exist_ok=True)
 
     torch.autograd.set_detect_anomaly(True)
     #############################
@@ -58,21 +64,19 @@ def main(args):
     preprocessed_folder = lung_reg_params["preprocessed_folder"]
     prefix = lung_reg_params["source_img"].split("/")[-3]
     if (lung_reg_params["recompute_preprocessed"]):
-    #    os.path.exists(preprocessed_folder + "/" + prefix + "_I0_3d.npy") and \
-    #    os.path.exists(preprocessed_folder + "/" + prefix + "_I1_proj.npy")):
         preprocessData(lung_reg_params["source_img"],
-                    lung_reg_params["target_img"],
-                    preprocessed_folder,
-                    prefix,
-                    shape,
-                    spacing,
-                    new_spacing,
-                    smooth=True,
-                    calc_projection=True,
-                    poses=poses,
-                    resolution_scale=resolution_scale,
-                    sample_rate=sample_rate,
-                    show_projection=True)
+                      lung_reg_params["target_img"],
+                      preprocessed_folder,
+                      prefix,
+                      shape,
+                      spacing,
+                      new_spacing,
+                      smooth=True,
+                      calc_projection=True,
+                      poses=poses,
+                      resolution_scale=resolution_scale,
+                      sample_rate=sample_rate,
+                      show_projection=True)
 
 
     #############################
@@ -122,16 +126,16 @@ def main(args):
 
         disp_map = affine_opt.get_map().detach()
 
-        np.save(lung_reg_params["affine"]["disp_file"], disp_map.cpu().numpy())
-        np.save(lung_reg_params["affine"]["warped_file"], affine_opt.get_warped_image().detach().cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_affine_disp.npy"), disp_map.cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_affine_warped.npy"), affine_opt.get_warped_image().detach().cpu().numpy())
         inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().model.Ab),
                                                                 affine_opt.get_initial_inverse_map()).detach()
         # print(affine_opt.get_optimizer().model.Ab)
-        np.save(lung_reg_params["affine"]["disp_inverse_file"], inverse_map.cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"), inverse_map.cpu().numpy())
 
         eval_with_file(lung_reg_params["eval_marker_source_file"],
                     lung_reg_params["eval_marker_target_file"],
-                    lung_reg_params["affine"]["disp_inverse_file"],
+                    os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"),
                     croped_dim.copy(),
                     np.flip(np.array(spacing)).copy(),
                     origin,
@@ -139,16 +143,21 @@ def main(args):
 
 
     # Performing the lddmm registration
-    if lung_reg_params["projection"]["run"]:
+    if lung_reg_params["deformable"]["run"]:
 
         mermaid_params_proj = pars.ParameterDict()
-        mermaid_params_proj.load_JSON(lung_reg_params["projection"]["setting"])
+        mermaid_params_proj.load_JSON(lung_reg_params["deformable"]["setting"])
 
-        disp_map = torch.from_numpy(np.load(lung_reg_params["affine"]["disp_file"])).to(device)
-        inverse_map = torch.from_numpy(np.load(lung_reg_params["affine"]["disp_inverse_file"])).to(device)
+        try:
+          disp_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_disp.npy"))).to(device)
+          inverse_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"))).to(device)
+        except:
+          disp_map = None
+          inverse_map = None
+          print("Did not find affine disp map.")
 
         mermaid_params_proj['model']['registration_model']['emitter_pos_list'] = poses.tolist()
-        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 100
+        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 10
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
         mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
         # mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
@@ -161,24 +170,25 @@ def main(args):
 
         opt.get_optimizer().set_model(mermaid_params_proj['model']['registration_model']['type'])
         opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
-        opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
+        if lung_reg_params['deformable']['use_affine'] and (disp_map is not None) and (inverse_map is not None):
+          opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
         opt.get_optimizer().set_visualization(True)
-        opt.get_optimizer().set_visualize_step(20)
+        opt.get_optimizer().set_visualize_step(5)
         opt.register()
 
         # # opt.get_optimizer().save_checkpoint("./data/checkpoint")
 
         # ###############################
         # # Save the results
-        np.save(lung_reg_params["projection"]["disp_file"], opt.get_map().detach().cpu().numpy())
-        np.save(lung_reg_params["projection"]["warped_file"], opt.get_warped_image().detach().cpu().numpy())
-        np.save(lung_reg_params["projection"]["disp_inverse_file"], opt.get_inverse_map().detach().cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_lddmm_disp.npy"), opt.get_map().detach().cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_lddmm_warped.npy"), opt.get_warped_image().detach().cpu().numpy())
+        np.save(os.path.join(exp_path, prefix + "_lddmm_inverse_disp.npy"), opt.get_inverse_map().detach().cpu().numpy())
         # mermaid_params.write_JSON(lung_reg_params["mermaid_setting_file"])
 
         eval_with_file(lung_reg_params["eval_marker_source_file"],
                     lung_reg_params["eval_marker_target_file"],
-                    lung_reg_params["projection"]["disp_inverse_file"],
+                    os.path.join(exp_path, prefix + "_lddmm_inverse_disp.npy"),
                     croped_dim.copy(),
                     np.flip(np.array(spacing)).copy(),
                     origin,

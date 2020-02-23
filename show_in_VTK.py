@@ -71,8 +71,8 @@ def generateVolume(matrix_full, colorDict, alphaDict):
 
 
 if __name__ == "__main__":
-    I0_file = "./input2.npy"
-    warped_file = "./warped2.npy"
+    I0_file = "./data/input_noMask_large.npy"
+    warped_file = "./data/warped_noMask_large.npy"
     #################
     # Load data
     I0 = np.load(I0_file)[0, 0]

@@ -14,6 +14,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Show registration result')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
+parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
+                    help='Path of the folder contains displacement files.')
 
 def plot_grid(ax, gridx,gridy, **kwargs):
     for i in range(gridx.shape[0]):
@@ -99,6 +101,7 @@ def show_in_mermaid(args):
     # Load Params
     lung_reg_params = pars.ParameterDict()
     lung_reg_params.load_JSON(args.setting)
+    disp_folder = args.disp_f
 
     SHOW_SDT = False
     SHOW_CT_IMG = False
@@ -109,16 +112,15 @@ def show_in_mermaid(args):
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
     I0_file = preprocessed_folder + "/" + prefix + "_I0_3d.npy"
-    disp_file = lung_reg_params["projection"]["disp_file"]
-    warped_file = lung_reg_params["projection"]["warped_file"]
+    disp_file = disp_folder + "/" + prefix + "_lddmm_disp.npy"
+    warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
 
     if SHOW_SDT:
         I1_file = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
     elif SHOW_CT_IMG:
         I1_file = "../eval_data/copd1/copd1/copd1_eBHCT.img"
     elif SHOW_DEMO_NPY:
-        I1_file =  preprocessed_folder + "/" + prefix + "_I1_3d.npy"
-    affine_phi = lung_reg_params["affine"]["disp_file"]
+        I1_file = preprocessed_folder + "/" + prefix + "_I1_3d.npy"
 
     # if using synthetic data
     # I0_file = lung_reg_params["source_file_synthetic"]
