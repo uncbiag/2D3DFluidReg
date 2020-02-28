@@ -63,11 +63,11 @@ def main(args):
     source_marker_file = lung_reg_params["eval_marker_source_file"]
     target_marker_file = lung_reg_params["eval_marker_target_file"]
 
-    marker_list = np.flip(np.load("./data/marker_most_inaccurate.npy"))[0:20]
+    marker_list = np.flip(np.load("./log/marker_most_inaccurate.npy"))[0:20]
     source_marker = np.array(readPoint(source_marker_file)-1)*np.flip(spacing)
     target_marker = np.array(readPoint(target_marker_file)-1)*np.flip(spacing)
-    warped_marker = np.load("./data/marker_warped.npy")
-    warped_marker_in_target = np.load("./data/marker_warped_target_coord.npy")
+    warped_marker = np.load("./log/marker_warped.npy")
+    warped_marker_in_target = np.load("./log/marker_warped_target_coord.npy")
 
     for i in range(marker_list.shape[0]):
         m_s = source_marker[marker_list[i]]

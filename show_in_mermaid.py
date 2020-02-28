@@ -112,8 +112,8 @@ def show_in_mermaid(args):
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
     I0_file = preprocessed_folder + "/" + prefix + "_I0_3d.npy"
-    disp_file = disp_folder + "/" + prefix + "_lddmm_disp.npy"
-    warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
+    disp_file = disp_folder + "/" + prefix + "_affine_disp.npy"
+    warped_file = disp_folder + "/" + prefix + "_affine_warped.npy"
 
     if SHOW_SDT:
         I1_file = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
@@ -133,7 +133,7 @@ def show_in_mermaid(args):
     SHOW_DISP = False
     SHOW_DEMO_NPY = True
 
-    prop = np.load(lung_reg_params["preprocessed_folder"] + "/prop.npy", allow_pickle=True)
+    prop = np.load(preprocessed_folder + "/" + prefix + "_prop.npy", allow_pickle=True)
     dim = np.array(prop.item().get("dim"))
 
     spacing = dim/np.array([1.5, 1.5, 1.5])
@@ -180,36 +180,39 @@ def show_in_mermaid(args):
     elif SHOW_DEMO_NPY:
         image = np.load(I1_file)
 
-    fig, ax = plt.subplots(3, 3)
+    fig, ax = plt.subplots(2, 3)
 
     plt.setp(plt.gcf(), 'facecolor', 'white')
     plt.style.use('bmh')
 
-    ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Source Image - Z slice')
-    ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'Source Image - X slice')
-    ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Source Image - Y slice')
+    ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Z slice')
+    ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'X slice')
+    ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Y slice')
+    ax[0,0].set_ylabel("Source")
 
     if not SHOW_DISP:
-        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Warped Image - Z slice')
-        warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'Warped Image - X slice')
-        warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Warped Image - Y slice')
+        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Z slice')
+        warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'X slice')
+        warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Y slice')
     else:
-        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'warped Image - Z slice')
-        warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'warped Image - X slice')
-        warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'warped Image - Y slice')
+        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'Z slice')
+        warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'X slice')
+        warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'Y slice')
+    ax[1,0].set_ylabel("Warped")
 
     if SHOW_SDT:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Target Image - Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'Target Image - X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Target Image - Y slice')
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Y slice')
     elif SHOW_CT_IMG:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Target Image - Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'Target Image - X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Target Image - Y slice')
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Y slice')
     elif SHOW_DEMO_NPY:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], image, 0, 'Target Image - Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], image, 1, 'Target Image - X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], image, 2, 'Target Image - Y slice')
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[1,0], image, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[1,1], image, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[1,2], image, 2, 'Y slice')
+    ax[1,0].set_ylabel("Target")
         
     feh = viewers.FigureEventHandler(fig)
 
@@ -228,8 +231,8 @@ def show_in_mermaid(args):
 
     feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
 
-    plt.show()
-    # plt.savefig("./data/imageViewer.png", dpi=200)
+    # plt.show()
+    plt.savefig("./log/imageViewer.png", dpi=200)
 
 
 if __name__ == "__main__":

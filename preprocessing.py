@@ -48,6 +48,8 @@ def seg_bg_mask(img, only_lung):
     eroded = morphology.erosion(thresh_img,np.ones([4,4,4]))
     dilation = morphology.dilation(eroded,np.ones([4,4,4]))
 
+    
+
     labels = measure.label(dilation)
     if only_lung:
         label_vals = np.unique(labels)
@@ -56,8 +58,8 @@ def seg_bg_mask(img, only_lung):
         good_labels_bbox = []
         for prop in regions:
             B = prop.bbox
-            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
-            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
+            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
+            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
                 good_labels.append(prop.label)
                 good_labels_bbox.append(prop.bbox)
         mask = np.ndarray([D,W,H],dtype=np.int8)
@@ -80,6 +82,9 @@ def seg_bg_mask(img, only_lung):
         mask = morphology.dilation(mask, np.ones([2,2,2])) # one last dilation
     else:
         mask = np.where(labels==1, 0, 1)
+        bbox = [0,0,0,D,W,H]
+        # plt.imshow(mask[:,20,:])
+        # plt.savefig("./log/temp.jpg")
 
     return mask, bbox
 
@@ -104,11 +109,11 @@ def load_IMG(file_path, shape, spacing, new_spacing):
     data = np.fromfile(fid, dtype)
     image = data.reshape(shape)
 
-    mask, bbox = seg_bg_mask(image, True)
+    mask, bbox = seg_bg_mask(image, False)
 
-    # for i in range(0,10):
-    #     plt.imshow((mask*image)[:,:,419-i*2])
-    #     plt.savefig("./data/image_%i.jpg"%i)
+    for i in range(0,10):
+        plt.imshow((mask*image)[:,:,i*20])
+        plt.savefig("./log/image_%i.jpg"%i)
     
     image = image.astype(np.float32)
     image_max = np.max(image)
@@ -173,7 +178,7 @@ def calculate_projection(img, poses, resolution_scale, sample_rate, device):
         grid = torch.flip(grid,[3])
         dx = dx.unsqueeze(0).unsqueeze(0)
         projections[0, i] = torch.mul(torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=False), dim=4), dx)[0, 0]
-        # np.save("./data/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
+        # np.save("./log/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
         del grid
         torch.cuda.empty_cache()
         
@@ -215,8 +220,8 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
 
     # Smooth the image
     if smooth:
-        img_0 = smoother(img_0, sigma=2)
-        img_1 = smoother(img_1, sigma=2)
+        img_0 = smoother(img_0, sigma=6)
+        img_1 = smoother(img_1, sigma=6)
 
     # Save the 3d image
     np.save(dest_folder + "/" + dest_prefix + "_I0_3d.npy", img_0)
@@ -241,7 +246,9 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
             for i in range(0, img_proj_0.shape[0]):
                 ax[0, i].imshow(img_proj_0[i])
                 ax[1, i].imshow(img_proj_1[i])
-            plt.savefig("./data/" + dest_prefix + "_projections.png")
+            ax[0,0].set_ylabel("Source projection")
+            ax[1,0].set_ylabel("Target projection")
+            plt.savefig("./log/" + dest_prefix + "_projections.png", dpi=300)
             # plt.show()
 
 if __name__ == "__main__":

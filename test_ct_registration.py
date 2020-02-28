@@ -24,16 +24,20 @@ warnings.filterwarnings("ignore")
 # Synthesize projection angel
 poses = np.array([#[-1., 2., -1.],
                 #   [-0.6, 2., -0.8],
-                  [-0.3, 3., -0.5],
+                  [-0.3, 3., -0.2],
                 #   [-0.2, 2., -0.2],
                   [-0.1, 3., -0.1],
                   # [0., 2., 0.],
                   [0.1, 3., 0.1],
                   #[0.2, 2., 0.2],
-                  [0.3, 3., 0.5]])
+                  [0.3, 3., 0.2]])
                 #   [0.6, 2., 0.8]])
                   #[1., 2., 1.]])
 
+poses = np.ndarray((30,3),dtype=np.float)
+poses[:,1] = 4.
+poses[:,0] = np.linspace(-0.4,0.4, num = 30)
+poses[:,2] = np.linspace(-0.2,0.2, num = 30)
 
 #############################
 # Load Params
@@ -55,13 +59,16 @@ def main(args):
     torch.autograd.set_detect_anomaly(True)
     #############################
     # Data Preprocessing
-    resolution_scale = 1.5
-    new_spacing = [1.5, 1.5, 1.5]
+    resolution_scale = 1.4
+    new_spacing = [1., 1., 1.]
     sample_rate = [int(1), int(1), int(1)]
 
     shape = lung_reg_params["shape"]
     spacing = lung_reg_params["spacing"]
     preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    if not os.path.exists(preprocessed_folder):
+      os.makedirs(preprocessed_folder, exist_ok=True)
+      
     prefix = lung_reg_params["source_img"].split("/")[-3]
     if (lung_reg_params["recompute_preprocessed"]):
         preprocessData(lung_reg_params["source_img"],
@@ -71,7 +78,7 @@ def main(args):
                       shape,
                       spacing,
                       new_spacing,
-                      smooth=True,
+                      smooth=False,
                       calc_projection=True,
                       poses=poses,
                       resolution_scale=resolution_scale,
@@ -110,7 +117,7 @@ def main(args):
         mermaid_params_affine.load_JSON(lung_reg_params["affine"]["setting"])
         mermaid_params_affine['model']['registration_model']['emitter_pos_list'] = poses.tolist()
 
-        affine_opt = MO.SimpleSingleScaleRegistration(I0,
+        affine_opt = MO.SimpleMultiScaleRegistration(I0,
                                                     I1_proj,
                                                     mermaid_spacing,
                                                     sz,
@@ -128,8 +135,10 @@ def main(args):
 
         np.save(os.path.join(exp_path, prefix + "_affine_disp.npy"), disp_map.cpu().numpy())
         np.save(os.path.join(exp_path, prefix + "_affine_warped.npy"), affine_opt.get_warped_image().detach().cpu().numpy())
-        inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().model.Ab),
-                                                                affine_opt.get_initial_inverse_map()).detach()
+        inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().ssOpt.model.Ab),
+                                                                affine_opt.get_optimizer().ssOpt.get_initial_inverse_map()).detach()
+        # inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().model.Ab),
+        #                                                         affine_opt.get_initial_inverse_map()).detach()
         # print(affine_opt.get_optimizer().model.Ab)
         np.save(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"), inverse_map.cpu().numpy())
 
@@ -141,6 +150,8 @@ def main(args):
                     origin,
                     False)
 
+        del affine_opt
+        torch.cuda.empty_cache()
 
     # Performing the lddmm registration
     if lung_reg_params["deformable"]["run"]:
@@ -157,7 +168,7 @@ def main(args):
           print("Did not find affine disp map.")
 
         mermaid_params_proj['model']['registration_model']['emitter_pos_list'] = poses.tolist()
-        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 10
+        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 5
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
         mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
         # mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
@@ -177,7 +188,7 @@ def main(args):
         opt.get_optimizer().set_visualize_step(5)
         opt.register()
 
-        # # opt.get_optimizer().save_checkpoint("./data/checkpoint")
+        # # opt.get_optimizer().save_checkpoint("./log/checkpoint")
 
         # ###############################
         # # Save the results

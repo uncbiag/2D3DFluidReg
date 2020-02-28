@@ -2,7 +2,7 @@
     "model": {
         "deformation": {
             "compute_similarity_measure_at_low_res": false,
-            "map_low_res_factor": 1.0,
+            "map_low_res_factor": 0.5,
             "use_map": true
         },
         "registration_model": {
@@ -127,7 +127,7 @@
                         ]
                     ]
                 },
-                "sigma": 0.008,
+                "sigma": 0.5,
                 "type": "ssd",
                 "projection":{
                     "base":"ssd"
@@ -174,7 +174,7 @@
         },
         "multi_scale": {
             "scale_factors":[1.0, 0.5, 0.25],
-            "scale_iterations":[1000, 1000, 1000]
+            "scale_iterations":[200, 200, 200]
         },
         "use_step_size_scheduler": true,
         "weight_clipping_type": "none",

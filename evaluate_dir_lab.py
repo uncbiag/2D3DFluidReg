@@ -94,14 +94,14 @@ def eval_with_data(source_list, target_list, phi, dim, spacing, origin, plot_res
     phi_t = torch.from_numpy(phi).double()
 
     warped_list_t = calc_warped_points(source_list_t, phi_t, dim, spacing)
-    np.save( "./data/marker_warped.npy", warped_list_t.numpy())
+    # np.save( "./log/marker_warped.npy", warped_list_t.numpy())
     warped_list_t = warped_list_t + torch.from_numpy((origin_list)*spacing)
-    np.save( "./data/marker_warped_target_coord.npy", warped_list_t.numpy())
+    # np.save( "./log/marker_warped_target_coord.npy", warped_list_t.numpy())
 
     pdist = torch.nn.PairwiseDistance(p=2)
     dist = pdist(target_list_t, warped_list_t)
     idx = torch.argsort(dist).numpy()
-    np.save("./data/marker_most_inaccurate.npy", idx)
+    # np.save("./log/marker_most_inaccurate.npy", idx)
     dist_x = torch.mean(torch.abs(target_list_t[:,0] - warped_list_t[:,0]))
     dist_y = torch.mean(torch.abs(target_list_t[:,1] - warped_list_t[:,1]))
     dist_z = torch.mean(torch.abs(target_list_t[:,2] - warped_list_t[:,2]))
@@ -119,7 +119,7 @@ def eval_with_data(source_list, target_list, phi, dim, spacing, origin, plot_res
             
         plt.legend()
         # plt.show()
-        plt.savefig("./data/eval_dir_lab_reg.png", bbox_inches="tight", dpi=300)
+        plt.savefig("./log/eval_dir_lab_reg.png", bbox_inches="tight", dpi=300)
 
     return res, [dist_x, dist_y, dist_z]
 
@@ -152,7 +152,7 @@ def plot_marker_distribution(source_file, target_file, spacing_origin, ct_source
     W_mid = int(W/2)
     H_mid = int(H/2)
     # source_list = readPoint(source_file)*spacing_origin
-    source_list = np.load("./data/points.npy")*spacing_origin
+    source_list = np.load("./log/points.npy")*spacing_origin
     target_file = readPoint(target_file)*spacing_origin
 
     fig, axes = plt.subplots(2, 3)
@@ -162,7 +162,7 @@ def plot_marker_distribution(source_file, target_file, spacing_origin, ct_source
     plot_on_img(ct_target[D_mid, :, :], target_file[:, 0], target_file[:, 1], axes[1, 0])
     plot_on_img(ct_target[:, W_mid, :], target_file[:, 0], target_file[:, 2], axes[1, 1])
     plot_on_img(ct_target[:, :, H_mid], target_file[:, 1], target_file[:, 2], axes[1, 2])
-    plt.savefig("./data/marker_distribution.png")
+    plt.savefig("./log/marker_distribution.png")
 
 def showOverlay(a, b, axes):
     merged = np.zeros((a.shape[0], a.shape[1], 3))
@@ -246,7 +246,7 @@ def plot_marker_deformation(source_file, target_file, phi_file, dim_origin, spac
     axes[2,2].imshow(ct_target[:, :, H_mid])
 
     plt.show()
-    # plt.savefig("./data/marker_deformation_" + label + ".png", dpi=300) 
+    # plt.savefig("./log/marker_deformation_" + label + ".png", dpi=300) 
 
 def plot_all(img, label=""):
     (D, W, H) = img.shape
@@ -256,7 +256,7 @@ def plot_all(img, label=""):
     for i in range(row):
         for j in range(5):
             axes[i, j].imshow(img[(i*5 + j)*5])
-    plt.savefig("./data/plot_all_" + label + ".png", dpi=300)
+    plt.savefig("./log/plot_all_" + label + ".png", dpi=300)
 
 def plot_one_marker_per_image(img, marker_pos, ax, rowId):
     marker_depth = int(marker_pos[2])
@@ -294,7 +294,7 @@ def plot_one_marker(source_file, target_file, phi_file, dim_origin, spacing_orig
     plot_one_marker_per_image(warped_img, warped_list[index], axes, 2)
 
     # plt.show()
-    plt.savefig("./data/plot_one_marker_" + label + ".png")
+    plt.savefig("./log/plot_one_marker_" + label + ".png")
 
 
 
@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     source_file = lung_reg_params["eval_marker_source_file"]
     target_file = lung_reg_params["eval_marker_target_file"]
-    phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
+    phi_file = disp_folder + "/" + prefix + "_affine_inverse_disp.npy"
     prop_file = lung_reg_params["preprocessed_folder"] + '/' + prefix +'_prop.npy'
     
     prop = np.load(prop_file, allow_pickle=True)
@@ -324,16 +324,16 @@ if __name__ == "__main__":
     # ct_target_file = "../eval_data/preprocessed/ehale_3d.npy"
     # plot_marker_distribution(source_file, target_file, spacing, ct_source_file, ct_target_file, np.array([4., 4., 4.]))
 
-    ct_source_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I0_3d.npy"
-    ct_target_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I1_3d.npy"
-    warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
+    # ct_source_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I0_3d.npy"
+    # ct_target_file = lung_reg_params["preprocessed_folder"] + "/" + prefix +"_I1_3d.npy"
+    # warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
 
-    plot_marker_deformation(source_file, 
-                            target_file, 
-                            phi_file, 
-                            dim, spacing, origin, 
-                            ct_source_file, 
-                            ct_target_file, 
-                            warped_file, 
-                            np.array([1.5, 1.5, 1.5]),
-                            "lddmm")
+    # plot_marker_deformation(source_file, 
+    #                         target_file, 
+    #                         phi_file, 
+    #                         dim, spacing, origin, 
+    #                         ct_source_file, 
+    #                         ct_target_file, 
+    #                         warped_file, 
+    #                         np.array([1.5, 1.5, 1.5]),
+    #                         "lddmm")
