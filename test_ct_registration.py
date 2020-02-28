@@ -110,7 +110,7 @@ def main(args):
         mermaid_params_affine.load_JSON(lung_reg_params["affine"]["setting"])
         mermaid_params_affine['model']['registration_model']['emitter_pos_list'] = poses.tolist()
 
-        affine_opt = MO.SimpleSingleScaleRegistration(I0,
+        affine_opt = MO.SimpleMultiScaleRegistration(I0,
                                                     I1_proj,
                                                     mermaid_spacing,
                                                     sz,
@@ -120,8 +120,13 @@ def main(args):
         affine_opt.get_optimizer().set_model(mermaid_params_affine['model']['registration_model']['type'])
         affine_opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
 
-        affine_opt.get_optimizer().set_visualization(True)
+        affine_opt.get_optimizer().set_visualization(False)
         affine_opt.get_optimizer().set_visualize_step(50)
+        affine_opt.get_optimizer().set_save_fig(True)
+        affine_opt.get_optimizer().set_expr_name("3d_2d")
+        affine_opt.get_optimizer().set_save_fig_path("./log")
+        affine_opt.get_optimizer().set_pair_name(["affine"])
+
         affine_opt.register()
 
         disp_map = affine_opt.get_map().detach()
@@ -173,8 +178,13 @@ def main(args):
         if lung_reg_params['deformable']['use_affine'] and (disp_map is not None) and (inverse_map is not None):
           opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
-        opt.get_optimizer().set_visualization(True)
+        opt.get_optimizer().set_visualization(False)
         opt.get_optimizer().set_visualize_step(5)
+        opt.get_optimizer().set_save_fig(True)
+        opt.get_optimizer().set_expr_name("3d_2d")
+        opt.get_optimizer().set_save_fig_path("./log")
+        opt.get_optimizer().set_pair_name(["lddmm"])
+
         opt.register()
 
         # # opt.get_optimizer().save_checkpoint("./log/checkpoint")
