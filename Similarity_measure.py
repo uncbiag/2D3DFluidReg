@@ -85,6 +85,8 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
     """
     def __init__(self, spacing, params):
         super(SdtCTProjectionSimilarity,self).__init__(spacing,params)
+        self.use_normalized_gradient = False
+        self.use_omt = False
         if self.params['similarity_measure']["projection"]["base"] == "ssd":
             self.sim = SSDSimilarity(spacing[0::2], params)
         elif self.params["similarity_measure"]["projection"]["base"] == "ncc":
@@ -93,6 +95,10 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             self.sim = LNCCSimilarity(spacing[0::2], params)
         elif self.params["similarity_measure"]["projection"]["base"] == "omt":
             self.sim = OptimalMassTransportSimilarity(spacing[0::2], params)
+            self.use_omt = True
+        elif self.params["similarity_measure"]["projection"]["base"] == "ngf":
+            self.sim = None
+            self.use_normalized_gradient = True
         else:
             self.sim = SSDSimilarity(spacing[0::2], params)
         self.emi_poses = self.params['emitter_pos_list']/spacing+1
@@ -127,23 +133,25 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             grids = torch.flip(grids, [3]).unsqueeze(0)
             dx = dx.unsqueeze(0).unsqueeze(0)
             I0_proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4), dx)
-            proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
-            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
-            
-            
-            #Calculate gradient similarity
-            # g_I0 = self._image_gradient(I0_proj, I0.device)
-            # g_I1 = self._image_gradient(I1[:,i:i+1,:,:], I0.device)
-            # volumeElement = I1.shape[2]*I1.shape[3]
-            # # temp = F.cosine_similarity(g_I0, g_I1, dim=4, eps=1e-16)
-            # cross = torch.bmm(g_I0.view(-1,1,2), g_I1.view(-1,2,1)).view(-1,1) + 1e-9
-            # norm = torch.mul(torch.norm(g_I0.view(-1,2),dim=1), 
-            #                 torch.norm(g_I1.view(-1,2),dim=1)) + 1e-9
-            # sim_per_pix = 1. - torch.div(cross.view(-1), norm)
-            # grad_sim = torch.sum(sim_per_pix)/volumeElement/self.sigma
-            # proj_sim = proj_sim + grad_sim
+            if self.sim and not self.use_normalized_gradient:
+                if self.use_omt:
+                    proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
+                else:
+                    proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
+            else:
+                # Calculate gradient similarity
+                g_I0 = self._image_gradient(I0_proj, I0.device)
+                g_I1 = self._image_gradient(I1[:,i:i+1,:,:], I0.device)
+                volumeElement = I1.shape[2]*I1.shape[3]
+                # temp = F.cosine_similarity(g_I0, g_I1, dim=4, eps=1e-16)
+                cross = torch.bmm(g_I0.view(-1,1,2), g_I1.view(-1,2,1)).view(-1,1) + 1e-9
+                norm = torch.mul(torch.norm(g_I0.view(-1,2),dim=1), 
+                                 torch.norm(g_I1.view(-1,2),dim=1)) + 1e-9
+                sim_per_pix = 1. - torch.div(cross.view(-1), norm)
+                grad_sim = torch.sum(sim_per_pix)/volumeElement/self.sigma
+                proj_sim = proj_sim + grad_sim
 
-        sim = proj_sim # + 0.6*grad_sim
+        sim = proj_sim
 
         # # TODO: debug
         # (h, w) = g_I0.shape[2:4]
@@ -190,7 +198,7 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         # plt.savefig("./log/gradient_dif.png")
 
 
-        return sim/len(self.emi_poses) #/self.sigma**2
+        return sim/len(self.emi_poses)
 
     def project(self, I0, emi_poses, proj_res, sample_rate):
         grid, dx = self._project_grid(emi_poses, proj_res, sample_rate, I0.shape[2:], self.spacing, I0.device)
