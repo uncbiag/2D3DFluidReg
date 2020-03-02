@@ -33,7 +33,7 @@ def load_scan(path):
 
 
 def resample(imgs, spacing, new_spacing, order=1):
-    if len(imgs.shape) == 3:
+    if len(imgs.shape) == 3 or len(imgs.shape) == 2:
         new_shape = np.round(imgs.shape * spacing / new_spacing)
         true_spacing = spacing * imgs.shape / new_shape
         resize_factor = new_shape / imgs.shape
