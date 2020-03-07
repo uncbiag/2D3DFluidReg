@@ -45,7 +45,7 @@
                     ],
                     "type": "multiGaussian"
                 },
-                "solver": "rk4"
+                "solver": "dopri5"
             },
             "loss": {
                 "display_max_displacement": false,
@@ -130,7 +130,7 @@
                 "sigma": 0.5,
                 "type": "ssd",
                 "projection":{
-                    "base":"ssd"
+                    "base":"ncc"
                 }
             },
             "spline_order": 1,
@@ -174,7 +174,7 @@
         },
         "multi_scale": {
             "scale_factors":[1.0, 0.5, 0.25],
-            "scale_iterations":[200, 200, 200]
+            "scale_iterations":[200, 200, 400]
         },
         "use_step_size_scheduler": true,
         "weight_clipping_type": "none",

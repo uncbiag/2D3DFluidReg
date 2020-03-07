@@ -24,13 +24,13 @@ class projection(nn.Module):
         # self.I_rec = nn.Parameter(torch.rand_like(I_target, device=device), requires_grad=True)
         # self.I_rec = nn.Parameter(torch.ones(shape, device=device)*-50, requires_grad=True)
         # self.I_rec = nn.Parameter(I_target.clone(), requires_grad=True)
-        self.I_rec = nn.Parameter(torch.ones(shape, device=device), requires_grad=True)
+        self.I_rec = nn.Parameter(torch.zeros(shape, device=device), requires_grad=True)
 
         self.resolution = resolution
         self.sample_rate = sample_rate
         self.spacing = torch.from_numpy(spacing).to(device)
         # self.spacing = torch.from_numpy(spacing).to(device)*0.001
-        self.batch_size = 10
+        self.batch_size = 22
         self.batch_start = 0
 
     def forward(self, poses):
@@ -122,18 +122,19 @@ def reconstruct(I_proj, I_target, poses, spacing, epochs = 400, log_step=100, lo
     I_target_npy = I_target.cpu().numpy()[0,0]
     model = projection(I_target.shape, resolution, sample_rate, I_target, spacing)
     # opt = torch.optim.Adam(model.parameters(), lr=0.5)
-    # opt = torch.optim.Adam(model.parameters(), lr=0.2)
-    opt = torch.optim.Adam(model.parameters(), lr=0.2)
+    opt = torch.optim.Adam(model.parameters(), lr=0.0001)
+    # opt = torch.optim.Adam(model.parameters(), lr=0.0001)
     scheduler = ReduceLROnPlateau(opt, 'min', factor=0.3, patience=2, cooldown=30, verbose=True)
 
     for i in range(epochs):
         opt.zero_grad()
         output, idx = model(poses)
-        loss = l1_loss(output, I_proj[idx,:,:,:], reduction='mean')
-        # loss = torch.mean(torch.norm(output-I_proj[idx,:,:,:], dim=(2,3)))
+        # loss = l1_loss(output, I_proj[idx,:,:,:], reduction='mean')
+        loss = torch.mean(torch.norm(output-I_proj[idx,:,:,:], dim=(2,3)))
         total_loss = loss
         # for p in model.parameters():
-        #     total_loss = total_loss + torch.mean(image_gradient(p))
+        #     total_loss = total_loss + torch.mean(F.relu(-1*p))
+            # total_loss = total_loss + 1000*torch.sum(F.relu(-1*p))# torch.mean(image_gradient(p))
         #early stop
         if total_loss.data < 1e-4:
             break
@@ -182,8 +183,8 @@ def reconstruct(I_proj, I_target, poses, spacing, epochs = 400, log_step=100, lo
 
         fig, axs = plt.subplots(2,5)
         for j in range(0,5):
-            axs[0,j].imshow(reconstructed[:,2+j*2,:])
-            axs[1,j].imshow(I_target_npy[:,2+j*2,:])
+            axs[0,j].imshow(reconstructed[:,50+j*20,:])
+            axs[1,j].imshow(I_target_npy[:,50+j*20,:])
         # plt.show()
         plt.savefig(os.path.join(log_path, "reconstructed_full.jpg"), dpi=300)
 
@@ -202,11 +203,11 @@ args = parser.parse_args()
 
 if args.data == "dirlab":
     #Prepare poses 
-    poses = np.array([
-                    [-0.4, 3., -0.5],
-                    [-0.1, 3., -0.1],
-                    [0.1, 3., 0.1],
-                    [0.3, 3., 0.5]])
+    # poses = np.array([
+    #                 [-0.4, 3., -0.5],
+    #                 [-0.1, 3., -0.1],
+    #                 [0.1, 3., 0.1],
+    #                 [0.3, 3., 0.5]])
     poses = np.ndarray((30,3),dtype=np.float)
     poses[:,1] = 4.
     poses[:,0] = np.linspace(-0.4,0.4, num = 30)
@@ -224,11 +225,11 @@ if args.data == "dirlab":
     I_numpy = np.load(preprocessed_folder+'/' + prefix + '_I1_3d.npy')
     I_target = torch.from_numpy(I_numpy).unsqueeze(0).unsqueeze(0).to(device)
 
-    poses = poses*I_numpy.shape
+    poses = poses*I_numpy.shape[1]
 
     I_proj = torch.from_numpy(np.load(preprocessed_folder+'/' + prefix + '_I1_proj.npy')).unsqueeze(1).to(device)
 
-    reconstruct(I_proj, I_target, poses, np.array(new_spacing), 400, 100, "./log/reconstruct_"+ args.data)
+    reconstruct(I_proj, I_target, poses, np.array(new_spacing), 800, 100, "./log/reconstruct_"+ args.data)
 elif args.data == "sDCT":
     projection_pos_file_path = '../../Data/Raw/NoduleStudyProjections/001/projectionPos.csv'
     projection_dicom_path = '../../Data/Raw/NoduleStudyProjections/001/DICOM'
@@ -238,7 +239,7 @@ elif args.data == "sDCT":
     poses[:,0] = poses_origin[:,1]
     poses[:,1] = poses_origin[:,2]
     poses[:,2] = poses_origin[:,0]
-    current_spacing = np.array([0.1, 4, 0.1])
+    current_spacing = np.array([0.139, 4, 0.139])
     new_spacing = np.array([1, 4, 1])
     scale_factor = current_spacing/new_spacing
     poses = poses/new_spacing
@@ -248,12 +249,12 @@ elif args.data == "sDCT":
     proj_file_list.sort()
     image = [dicom.read_file(projection_dicom_path + '/' + s).pixel_array for s in proj_file_list]
     image = np.array(image)
-    image = image.astype(np.float32)
+    image = image.astype(np.float32)/65535+0.0001
     I_proj = torch.from_numpy(image).unsqueeze(1).to(device)
     # I_proj = F.interpolate(I_proj, scale_factor=scale_factor[0::2])
     # I_proj = I_proj/(torch.max(I_proj)-torch.min(I_proj))
-    I_proj[I_proj==0] = 0.1
-    I_proj = torch.log(torch.tensor(5e-4)) - torch.log(F.interpolate(I_proj, scale_factor=scale_factor[0::2]))
+    # I_proj[I_proj==0] = 0.1
+    I_proj = - torch.log(F.interpolate(I_proj, scale_factor=scale_factor[0::2]))
 
     # Load sDCT
     sdct_file_list = os.listdir(sDCT_dicom_path)
@@ -261,7 +262,7 @@ elif args.data == "sDCT":
     image  = [dicom.read_file(sDCT_dicom_path + '/' + s).pixel_array for s in sdct_file_list]
     image = np.array(image)
     image = np.transpose(image, (1,0,2))
-    image = image.astype(np.float32)
+    image = image.astype(np.float32)/100000.
     I_target = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).to(device)
     I_target = F.interpolate(I_target, scale_factor=scale_factor)
 
@@ -269,11 +270,11 @@ elif args.data == "sDCT":
 
 reconstructed = np.load(os.path.join("./log", "reconstruct_" + args.data + "/reconstructed_full.npy"))
 # I_numpy = np.load(preprocessed_folder+'/' + prefix + '_I1_3d.npy')
-reconstructed = reconstructed/(np.max(reconstructed)-np.min(reconstructed))*2000
+# reconstructed = reconstructed/(np.max(reconstructed)-np.min(reconstructed))*2000
 fig, axs = plt.subplots(2,5)
 fig.suptitle("Reconstructed result")
 for i in range(0,10):
-    axs[int(i/5),i%5].imshow(reconstructed[:,i*7,:])
+    axs[int(i/5),i%5].imshow(reconstructed[:,i*20,:])
     axs[int(i/5),i%5].set_xlabel("i = %i"%(i*7))
 # plt.show()
 plt.savefig(os.path.join("./log", "reconstruct_" + args.data + "/reconstructed_full_sparse.jpg"), dpi=300)
@@ -282,8 +283,20 @@ I_numpy = I_target[0,0].cpu().numpy()
 fig, axs = plt.subplots(2,5)
 fig.suptitle("sDCT")
 for i in range(0,10):
-    axs[int(i/5),i%5].imshow(I_numpy[:,i*7,:])
+    axs[int(i/5),i%5].imshow(I_numpy[:,i*20,:])
     axs[int(i/5),i%5].set_xlabel("i = %i"%(i*7))
     # axs[1,j].imshow(I_numpy[:,100+j*10,:])
 # plt.show()
 plt.savefig(os.path.join("./log", "reconstruct_" + args.data + "/sDCT.jpg"), dpi=300)
+
+# # Plot the hist
+# fig, axs = plt.subplots(3,2)
+# fig.suptitle("Histagram")
+# axs[0,0].hist(reconstructed[:,35,:]*1000, bins=100)
+# axs[0,0].set_ylabel("reconstructed")
+# axs[0,1].imshow(reconstructed[:,35,:])
+# axs[1,0].hist(I_numpy[:,35,:]*1000, bins=100)
+# axs[1,0].set_ylabel("sDCT")
+# axs[1,1].imshow(I_numpy[:,35,:])
+# axs[2,1].imshow(I_numpy[:,35,:]-reconstructed[:,35,:])
+# plt.savefig(os.path.join("./log", "reconstruct_" + args.data + "/hist.jpg"), dpi=300)
