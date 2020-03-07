@@ -248,5 +248,20 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
             plt.savefig("./log/" + dest_prefix + "_projections.png")
             # plt.show()
 
+def calculate_projection_wraper(img_3d, spacing):
+    poses_scale = np.array([
+                  [-0.3, 3., -0.2],
+                  [-0.1, 3., -0.1],
+                  [0.1, 3., 0.1],
+                  [0.3, 3., 0.2]])
+
+    resolution_scale = 1.4
+    sample_rate = [int(1), int(1), int(1)]
+
+    device = torch.device("cuda")
+    img_proj = calculate_projection(img_3d, poses_scale, resolution_scale,
+                                        sample_rate, spacing, device)
+    return img_proj
+       
 if __name__ == "__main__":
     pass
