@@ -109,11 +109,11 @@ def load_IMG(file_path, shape, spacing, new_spacing):
     data = np.fromfile(fid, dtype)
     image = data.reshape(shape)
 
-    mask, bbox = seg_bg_mask(image, False)
+    mask, bbox = seg_bg_mask(image, True)
 
-    for i in range(0,10):
-        plt.imshow((mask*image)[:,:,i*20])
-        plt.savefig("./log/image_%i.jpg"%i)
+    # for i in range(0,10):
+    #     plt.imshow((mask*image)[:,:,i*20])
+    #     plt.savefig("./log/image_%i.jpg"%i)
     
     image = image.astype(np.float32)
     image_max = np.max(image)
@@ -130,7 +130,7 @@ def project_grid(img, emi_pos, resolution, sample_rate, obj_shape, spacing):
     d, w, h = obj_shape
     res_d, res_h = resolution
     device = img.device
-    emi_pos_s = emi_pos / spacing
+    emi_pos_s = emi_pos
     sr_d, sr_w, sr_h = sample_rate
 
 
@@ -149,8 +149,9 @@ def project_grid(img, emi_pos, resolution, sample_rate, obj_shape, spacing):
     I[:,:,0] = grid_x
     I[:,:,2] = grid_y
     I = torch.add(I,-I0)
+    dx = torch.mul(I, 1./I[:,:,1:2])
     I = I/torch.norm(I, dim=2, keepdim=True)
-    dx = torch.abs(torch.mul(torch.ones((I.shape[0],I.shape[1]), device=device),1./I[:,:,1]))
+    dx = torch.norm(dx*spacing.unsqueeze(0).unsqueeze(0), dim=2)
 
     # Define a line as I(t)=I0+t*I
     # Define a plane as (P-P0)*N=0, P is a vector of points on the plane
@@ -165,9 +166,9 @@ def project_grid(img, emi_pos, resolution, sample_rate, obj_shape, spacing):
     grid[:,:,:,2] = grid[:,:,:,2]/obj_shape[2]*2.0
     return grid, dx
 
-def calculate_projection(img, poses, resolution_scale, sample_rate, device):
-    poses = poses*img.shape
-    spacing = [1., 1., 1.]
+def calculate_projection(img, poses_scale, resolution_scale, sample_rate, spacing, device):
+    poses = poses_scale*img.shape[1]
+    spacing = torch.tensor(spacing).to(device)
     I1 = torch.from_numpy(img).to(device)
     I1 = I1.unsqueeze(0).unsqueeze(0)
     resolution = [int(I1.shape[2] * resolution_scale),
@@ -182,7 +183,6 @@ def calculate_projection(img, poses, resolution_scale, sample_rate, device):
         del grid
         torch.cuda.empty_cache()
         
-
     return projections[0].detach().cpu().numpy()
 
 def smoother(img, sigma=3):
@@ -192,7 +192,7 @@ def smoother(img, sigma=3):
     return img
 
 def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, spacing,
-                   new_spacing, smooth=False, calc_projection=False, poses=[],
+                   new_spacing, smooth=False, sigma=6, calc_projection=False, poses_scale=[],
                    resolution_scale=1.0, sample_rate=[1, 1], show_projection=False):
     print("Preprocessing data...")
 
@@ -220,8 +220,8 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
 
     # Smooth the image
     if smooth:
-        img_0 = smoother(img_0, sigma=6)
-        img_1 = smoother(img_1, sigma=6)
+        img_0 = smoother(img_0, sigma=sigma)
+        img_1 = smoother(img_1, sigma=sigma)
 
     # Save the 3d image
     np.save(dest_folder + "/" + dest_prefix + "_I0_3d.npy", img_0)
@@ -232,12 +232,12 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
     # Calculate the projection image
     if calc_projection:
         device = torch.device("cuda")
-        img_proj_0 = calculate_projection(img_0, poses, resolution_scale,
-                                          sample_rate, device)
+        img_proj_0 = calculate_projection(img_0, poses_scale, resolution_scale,
+                                          sample_rate, new_spacing, device)
         np.save(dest_folder + "/" + dest_prefix + "_I0_proj.npy", img_proj_0)
 
-        img_proj_1 = calculate_projection(img_1, poses, resolution_scale,
-                                          sample_rate, device)
+        img_proj_1 = calculate_projection(img_1, poses_scale, resolution_scale,
+                                          sample_rate, new_spacing, device)
         np.save(dest_folder + "/" + dest_prefix + "_I1_proj.npy", img_proj_1)
 
         if show_projection:
