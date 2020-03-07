@@ -22,7 +22,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Synthesize projection angel
-poses = np.array([#[-1., 2., -1.],
+poses_scale = np.array([#[-1., 2., -1.],
                 #   [-0.6, 2., -0.8],
                   [-0.3, 3., -0.5],
                 #   [-0.2, 2., -0.2],
@@ -64,7 +64,7 @@ def main(args):
     preprocessed_folder = lung_reg_params["preprocessed_folder"]
     prefix = lung_reg_params["source_img"].split("/")[-3]
     if (lung_reg_params["recompute_preprocessed"]):
-        preprocessData(lung_reg_params["source_img"],
+        preprocessData(lung_reg_params["source_img"], 
                       lung_reg_params["target_img"],
                       preprocessed_folder,
                       prefix,
@@ -72,8 +72,9 @@ def main(args):
                       spacing,
                       new_spacing,
                       smooth=True,
+                      sigma = 2,
                       calc_projection=True,
-                      poses=poses,
+                      poses_scale=poses_scale,
                       resolution_scale=resolution_scale,
                       sample_rate=sample_rate,
                       show_projection=True)
@@ -108,7 +109,9 @@ def main(args):
 
         mermaid_params_affine = pars.ParameterDict()
         mermaid_params_affine.load_JSON(lung_reg_params["affine"]["setting"])
-        mermaid_params_affine['model']['registration_model']['emitter_pos_list'] = poses.tolist()
+        mermaid_params_affine['model']['registration_model']['emitter_pos_scale_list'] = poses_scale.tolist()
+        mermaid_params_affine['model']['registration_model']["similarity_measure"]["projection"]["spacing"] = new_spacing
+        mermaid_params_affine['model']['registration_model']["similarity_measure"]["projection"]["currentScaleFactor"] = 1.0
 
         affine_opt = MO.SimpleMultiScaleRegistration(I0,
                                                     I1_proj,
@@ -130,11 +133,10 @@ def main(args):
         affine_opt.register()
 
         disp_map = affine_opt.get_map().detach()
-
         np.save(os.path.join(exp_path, prefix + "_affine_disp.npy"), disp_map.cpu().numpy())
         np.save(os.path.join(exp_path, prefix + "_affine_warped.npy"), affine_opt.get_warped_image().detach().cpu().numpy())
-        inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().model.Ab),
-                                                                affine_opt.get_initial_inverse_map()).detach()
+        inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().ssOpt.model.Ab),
+                                                                affine_opt.get_optimizer().ssOpt.get_initial_inverse_map()).detach()
         # print(affine_opt.get_optimizer().model.Ab)
         np.save(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"), inverse_map.cpu().numpy())
 
@@ -161,10 +163,12 @@ def main(args):
           inverse_map = None
           print("Did not find affine disp map.")
 
-        mermaid_params_proj['model']['registration_model']['emitter_pos_list'] = poses.tolist()
-        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 10
+        mermaid_params_proj['model']['registration_model']['emitter_pos_scale_list'] = poses_scale.tolist()
+        mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 5
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
         mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
+        mermaid_params_proj['model']['registration_model']["similarity_measure"]["projection"]["spacing"] = new_spacing
+        mermaid_params_proj['model']['registration_model']["similarity_measure"]["projection"]["currentScaleFactor"] = 1.0
         # mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
         opt = MO.SimpleMultiScaleRegistration(I0,
                                             I1_proj,
@@ -179,7 +183,7 @@ def main(args):
           opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
         opt.get_optimizer().set_visualization(False)
-        opt.get_optimizer().set_visualize_step(5)
+        opt.get_optimizer().set_visualize_step(20)
         opt.get_optimizer().set_save_fig(True)
         opt.get_optimizer().set_expr_name("3d_2d")
         opt.get_optimizer().set_save_fig_path("./log")
