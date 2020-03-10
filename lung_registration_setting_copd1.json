@@ -10,7 +10,7 @@
     "eval_marker_target_file":"./data/copd1/copd1_300_eBH_xyz_r1.txt",
 
     "affine":{
-        "run" : true,
+        "run" : false,
         "setting":"./mermaid_setting_affine.json"
     },
     "deformable":{

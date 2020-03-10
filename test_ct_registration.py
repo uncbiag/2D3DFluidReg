@@ -159,7 +159,7 @@ def main(args):
         mermaid_params_proj['model']['registration_model']['emitter_pos_list'] = poses.tolist()
         mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 10
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
-        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
+        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.5
         # mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
         opt = MO.SimpleMultiScaleRegistration(I0,
                                             I1_proj,

@@ -127,8 +127,8 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
             grids = torch.flip(grids, [3]).unsqueeze(0)
             dx = dx.unsqueeze(0).unsqueeze(0)
             I0_proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = False), dim=4), dx)
-            proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
-            # proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
+            #proj_sim = proj_sim + self.sim.compute_similarity(I0_proj[0,0], I1[0,i,:,:], I0_proj, phi)
+            proj_sim = proj_sim + self.sim.compute_similarity(I0_proj, I1[:,i:i+1,:,:], I0_proj, phi)
             
             
             #Calculate gradient similarity

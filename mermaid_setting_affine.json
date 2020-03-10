@@ -127,10 +127,10 @@
                         ]
                     ]
                 },
-                "sigma": 0.008,
+                "sigma": 0.5,
                 "type": "ssd",
                 "projection":{
-                    "base":"omt"
+                    "base":"ncc"
                 }
             },
             "spline_order": 1,
@@ -149,14 +149,14 @@
         "sgd": {
             "individual": {
                 "dampening": 0.0,
-                "lr": 1e-4,
+                "lr": 1e-3,
                 "momentum": 0.9,
                 "nesterov": true,
                 "weight_decay": 0.0
             },
             "shared": {
                 "dampening": 0.0,
-                "lr": 1e-4,
+                "lr": 5e-4,
                 "momentum": 0.9,
                 "nesterov": true,
                 "weight_decay": 0.0
@@ -165,11 +165,11 @@
         "name": "sgd",
         "scheduler": {
             "factor": 0.5,
-            "patience": 3,
+            "patience": 10,
             "verbose": true
         },
         "single_scale": {
-            "nr_of_iterations": 6000,
+            "nr_of_iterations": 300,
             "rel_ftol": 1e-05
         },
         "multi_scale": {
