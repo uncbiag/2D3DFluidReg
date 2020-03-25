@@ -58,10 +58,38 @@ def seg_bg_mask(img, only_lung):
         good_labels_bbox = []
         for prop in regions:
             B = prop.bbox
-            if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
-            # if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*16 and B[1]>W/10 and B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and B[3]-B[0]>D/4:
+            if (B[4]-B[1]<W/20*18 and B[4]-B[1]>W/5 and B[4]<W/20*16 and B[1]>W/10 and
+                 B[5]-B[2]<H/20*16 and B[5]-B[2]>H/10 and B[2]>H/10 and B[5]<H/20*18 and
+                 B[3]-B[0]>D/4):
                 good_labels.append(prop.label)
                 good_labels_bbox.append(prop.bbox)
+                print(B)
+        
+        if len(good_labels) == 0:
+            good_labels = []
+            good_labels_bbox = []
+            for prop in regions:
+                B = prop.bbox
+                if (B[4]-B[1]<W/20*18 and B[4]-B[1]>W/6 and B[4]<W/20*18 and B[1]>W/20 and
+                    B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20):
+                    good_labels.append(prop.label)
+                    good_labels_bbox.append(prop.bbox)
+                    print("2")
+                    print(B)
+        
+        if len(good_labels) == 0:
+            good_labels = []
+            good_labels_bbox = []
+            for prop in regions:
+                B = prop.bbox
+                if B[4]-B[1]<W/20*18 and B[4]-B[1]>W/20 and B[4]<W/20*18 and B[1]>W/20:
+                # and B[5]-B[2]<H/20*18 and B[5]-B[2]>H/20:
+                    good_labels.append(prop.label)
+                    good_labels_bbox.append(prop.bbox)
+                    print("3")
+                    print(B)
+        
+        
         mask = np.ndarray([D,W,H],dtype=np.int8)
         mask[:] = 0
 
@@ -178,7 +206,7 @@ def calculate_projection(img, poses_scale, resolution_scale, sample_rate, spacin
         grid, dx = project_grid(I1, poses[i], (resolution[0], resolution[1]), sample_rate, I1.shape[2:], spacing)
         grid = torch.flip(grid,[3])
         dx = dx.unsqueeze(0).unsqueeze(0)
-        projections[0, i] = torch.mul(torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=False), dim=4), dx)[0, 0]
+        projections[0, i] = torch.mul(torch.sum(F.grid_sample(I1, grid.unsqueeze(0), align_corners=True), dim=4), dx)[0, 0]
         # np.save("./log/grids_sim_matrix_"+str(i)+".npy", grid.cpu().numpy())
         del grid
         torch.cuda.empty_cache()

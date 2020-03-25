@@ -21,23 +21,31 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
-# Synthesize projection angel
-poses_scale = np.array([#[-1., 2., -1.],
-                #   [-0.6, 2., -0.8],
-                  [-0.3, 3., -0.2],
-                #   [-0.2, 2., -0.2],
-                  [-0.1, 3., -0.1],
-                  # [0., 2., 0.],
-                  [0.1, 3., 0.1],
-                  #[0.2, 2., 0.2],
-                  [0.3, 3., 0.2]])
-                #   [0.6, 2., 0.8]])
-                  #[1., 2., 1.]])
 
-# poses_scale = np.ndarray((30,3),dtype=np.float)
-# poses_scale[:,1] = 4.
-# poses_scale[:,0] = np.linspace(-0.4,0.4, num = 30)
-# poses_scale[:,2] = np.linspace(-0.2,0.2, num = 30)
+
+# poses_scale = np.array([
+#                   [-0.3, 3., -0.2],
+#                   [-0.1, 3., -0.1],
+#                   [0.1, 3., 0.1],
+#                   [0.3, 3., 0.2]])
+
+# poses_scale = np.array([
+#                   [-0.6, 3., -0.2],
+#                   [-0.3, 3., -0.1],
+#                   [0.3, 3., 0.1],
+#                   [0.6, 3., 0.2]])
+
+# poses_scale = np.array([
+#                   [-0.9, 3., -0.2],
+#                   [-0.4, 3., -0.1],
+#                   [0.4, 3., 0.1],
+#                   [0.9, 3., 0.2]])
+
+emitter_count = 12
+poses_scale = np.ndarray((emitter_count,3),dtype=np.float)
+poses_scale[:,1] = 3.
+poses_scale[:,0] = np.tan(np.linspace(-11,11,num=emitter_count)/180.*np.pi)*3.
+poses_scale[:,2] = np.linspace(-0.2,0.2, num = emitter_count)
 
 #############################
 # Load Params
@@ -46,7 +54,15 @@ parser = argparse.ArgumentParser(description='3D/2D registration')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
 parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
-                    help='Path of the folder contains displacement files.')                    
+                    help='Path of the folder contains displacement files.')   
+parser.add_argument('--preprocess', '-p', metavar='PREPROCESS', default='',
+                    help='Path of the folder contains preprocess files.')  
+parser.add_argument('--angle', type=int, default=0,
+                    help='The scanning range of angles.') 
+parser.add_argument('--projection_num', type=int, default=0,
+                    help='The number of projection used.')   
+parser.add_argument('--resolution_scale', type=float, default=1.4,
+                    help='The number of projection used.')                              
 
 def main(args):
     lung_reg_params = pars.ParameterDict()
@@ -56,20 +72,42 @@ def main(args):
     if not os.path.exists(exp_path):
         os.makedirs(exp_path, exist_ok=True)
 
+    # Synthesize projection angle
+    angle = 11
+    emitter_count = 4
+    poses_scale = np.array([
+                      [-0.3, 3., -0.2],
+                      [-0.1, 3., -0.1],
+                      [0.1, 3., 0.1],
+                      [0.3, 3., 0.2]])
+    ############################
+    if args.angle != 0 and args.projection_num != 0:
+      angle = args.angle/2.
+      emitter_count = args.projection_num
+      poses_scale = np.ndarray((emitter_count,3),dtype=np.float)
+      poses_scale[:,1] = 3.
+      poses_scale[:,0] = np.tan(np.linspace(-angle,angle,num=emitter_count)/180.*np.pi)*3.
+      poses_scale[:,2] = np.linspace(-0.2,0.2, num = emitter_count)
+
     torch.autograd.set_detect_anomaly(True)
     #############################
     # Data Preprocessing
-    resolution_scale = 1.4
+    resolution_scale = args.resolution_scale
     new_spacing = [1., 1., 1.]
     sample_rate = [int(1), int(1), int(1)]
 
     shape = lung_reg_params["shape"]
     spacing = lung_reg_params["spacing"]
-    preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    if args.preprocess == "":
+      preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    else:
+      preprocessed_folder = args.preprocess
+
+    
     if not os.path.exists(preprocessed_folder):
       os.makedirs(preprocessed_folder, exist_ok=True)
       
-    prefix = lung_reg_params["source_img"].split("/")[-3]
+    prefix = lung_reg_params["source_img"].split("/")[-3] + "_"+str(int(angle*2))+"_degree_"+ str(emitter_count)
     if (lung_reg_params["recompute_preprocessed"]):
         preprocessData(lung_reg_params["source_img"], 
                       lung_reg_params["target_img"],
@@ -210,6 +248,9 @@ def main(args):
         np.save(os.path.join(exp_path, prefix + "_lddmm_warped.npy"), opt.get_warped_image().detach().cpu().numpy())
         np.save(os.path.join(exp_path, prefix + "_lddmm_inverse_disp.npy"), opt.get_inverse_map().detach().cpu().numpy())
         # mermaid_params.write_JSON(lung_reg_params["mermaid_setting_file"])
+
+        del opt
+        torch.cuda.empty_cache()
 
         eval_with_file(lung_reg_params["eval_marker_source_file"],
                     lung_reg_params["eval_marker_target_file"],

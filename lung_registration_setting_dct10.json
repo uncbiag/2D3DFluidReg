@@ -1,7 +1,7 @@
 {
     "source_img":"../eval_data/Case10Pack/Images/case10_T00.img",
     "target_img":"../eval_data/Case10Pack/Images/case10_T50.img",
-    "preprocessed_folder":"../eval_data/preprocessed",
+    "preprocessed_folder":"../eval_data/preprocessed_11_degree_more_proj",
     "recompute_preprocessed":true,
     "shape":[120,512,512],
     "spacing":[2.5,0.97,0.97],

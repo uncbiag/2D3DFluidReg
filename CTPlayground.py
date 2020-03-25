@@ -11,7 +11,7 @@ from sklearn.preprocessing import normalize
 
 
 def load_scan(path):
-    slices = [dicom.read_file(path + '/' + s) for s in os.listdir(path)]
+    slices = [dicom.read_file(path + '/' + s, force=True) for s in os.listdir(path)]
     slices.sort(key=lambda x: float(x.ImagePositionPatient[2]))
     if slices[0].ImagePositionPatient[2] == slices[1].ImagePositionPatient[2]:
         sec_num = 2
@@ -88,7 +88,7 @@ if __name__=="__main__":
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    dicomPath = '../../Data/Raw/DICOMforMN/DICOM/S00001/SER00002'
+    dicomPath = '../../Data/Raw/DICOMforMN/S00001/SER00002'
     sdtPath = '../../Data/Raw/NoduleStudyProjections/001/DICOM/'
     processed_file_folder = '../../Data/Preprocessed/sdt0001'
     
@@ -127,21 +127,23 @@ if __name__=="__main__":
     # Processing raw data from sDT
     image = [dicom.read_file(sdtPath + '/' + s).pixel_array for s in os.listdir(sdtPath)]
     image = np.array(image)
-    image = image.astype(np.float)
+    image = image.astype(np.float32)
+    image = image[:, 0:2052]
+    image = -np.log(image/65535+0.0001)
 
-    proj_y = image[:, 0:2052]
-    proj_y[proj_y==0]=1
-    proj_y[proj_y>16000] = 16000
-    proj_y = -proj_y
-    # proj_y = np.log(proj_y)
-    # proj_y[proj_y<7] = 7
+    
+    # proj_y[proj_y==0]=1
+    # proj_y[proj_y>16000] = 16000
     # proj_y = -proj_y
-    proj_y_max = np.max(proj_y, axis=(1,2))
-    proj_y_min = np.min(proj_y, axis=(1,2))
-    dur = proj_y_max - proj_y_min
-    for i in range(proj_y.shape[0]):
-        proj_y[i] = (proj_y[i] - proj_y_min[i])/dur[i]*255
-    np.save(processed_file_folder+"/projection.npy", proj_y)
+    # # proj_y = np.log(proj_y)
+    # # proj_y[proj_y<7] = 7
+    # # proj_y = -proj_y
+    # proj_y_max = np.max(proj_y, axis=(1,2))
+    # proj_y_min = np.min(proj_y, axis=(1,2))
+    # dur = proj_y_max - proj_y_min
+    # for i in range(proj_y.shape[0]):
+    #     proj_y[i] = (proj_y[i] - proj_y_min[i])/dur[i]*255
+    np.save(processed_file_folder+"/projection.npy", image)
 
     # Compare projection of CT and sDT
     # case_torch = torch.from_numpy(case_pixels).to(device).float()

@@ -15,7 +15,7 @@ import os
 
 from evaluate_dir_lab import eval_with_data, readPoint, eval_with_file
 
-from Similarity_measure import SdtCTProjectionSimilarity
+from Similarity_measure import SdtCTProjectionSimilarity, NGFSimilarity
 import argparse
 
 import warnings
@@ -28,7 +28,9 @@ parser = argparse.ArgumentParser(description='3D/2D registration')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
 parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
-                    help='Path of the folder contains displacement files.')                    
+                    help='Path of the folder contains displacement files.')    
+parser.add_argument('--result','-r', default='./result')
+parser.add_argument('--preprocess','-p',default="")                
 
 def main(args):
     lung_reg_params = pars.ParameterDict()
@@ -41,15 +43,13 @@ def main(args):
     torch.autograd.set_detect_anomaly(True)
     #############################
     # Data Preprocessing
-    resolution_scale = 1.4
-    new_spacing = [1., 1., 1.]
-    sample_rate = [int(1), int(1), int(1)]
-
-    shape = lung_reg_params["shape"]
     spacing = lung_reg_params["spacing"]
-    preprocessed_folder = lung_reg_params["preprocessed_folder"]
-    if not os.path.exists(preprocessed_folder):
-      os.makedirs(preprocessed_folder, exist_ok=True)
+    if args.preprocess == "":
+        preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    else:
+        preprocessed_folder = args.preprocess
+    
+    reconstructed_folder = args.result
       
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
@@ -63,7 +63,7 @@ def main(args):
     I0 = torch.from_numpy(I0_numpy).unsqueeze(0).unsqueeze(0).to(device)
 
     # Target data
-    I1_numpy = np.load('./log/reconstruct_dirlab/reconstructed_full.npy')
+    I1_numpy = np.load(reconstructed_folder+'/' + prefix + '.npy')
     I1 = torch.from_numpy(I1_numpy).unsqueeze(0).unsqueeze(0).to(device)
 
     prop = np.load(preprocessed_folder + "/" + prefix + "_prop.npy", allow_pickle = True)
@@ -137,20 +137,23 @@ def main(args):
 
         mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 5
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
-        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
+        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.1
         mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
+        mermaid_params_proj['optimizer']['name'] = 'sgd'
+        mermaid_params_proj['optimizer']['sgd']['individual']['lr'] = 0.1
         opt = MO.SimpleMultiScaleRegistration(I0,
                                             I1,
                                             mermaid_spacing,
                                             sz,
                                             mermaid_params_proj,
                                             compute_inverse_map=True)
-
+        # opt.get_optimizer().set_model(mermaid_params_proj['model']['registration_model']['type'])
+        # opt.get_optimizer().add_similarity_measure("ngf", NGFSimilarity)
         if lung_reg_params['deformable']['use_affine'] and (disp_map is not None) and (inverse_map is not None):
           opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
         opt.get_optimizer().set_visualization(False)
-        # opt.get_optimizer().set_visualize_step(20)
+        # opt.get_optimizer().set_visualize_step(10)
         # opt.get_optimizer().set_save_fig(True)
         # opt.get_optimizer().set_expr_name("3d_3d")
         # opt.get_optimizer().set_save_fig_path("./log")

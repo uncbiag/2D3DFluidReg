@@ -7,10 +7,39 @@ import numpy as np
 from mermaid import utils
 import torch
 import argparse
+import SimpleITK as sitk
 
 parser = argparse.ArgumentParser(description='Show registration result')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
+parser.add_argument('--preprocess', '-p', metavar='PREPROCESS', default='',
+                    help='Path of the folder contains preprocess files.') 
+parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
+                    help='Path of the folder contains displacement files.')
+
+def load_IMG(file_path, shape, spacing, new_spacing):
+    dtype = np.dtype("<i2")
+    fid = open(file_path, 'rb')
+    data = np.fromfile(fid, dtype)
+    image = data.reshape(shape)
+
+    mask = None
+    bbox = None
+    # mask, bbox = seg_bg_mask(image, True)
+
+    # for i in range(0,10):
+    #     plt.imshow((mask*image)[:,:,i*20])
+    #     plt.savefig("./log/image_%i.jpg"%i)
+    
+    image = image.astype(np.float32)
+    # image_max = np.max(image)
+    # image_min = np.min(image)
+    # image = image/(image_max - image_min)
+
+    # image[image>300] = 0
+    # image = (image/1000.0+1)*1.673
+
+    return image, mask, bbox
 
 def nearest_int(x):
     if x - int(x) > 0.5:
@@ -43,6 +72,13 @@ def main(args):
     # warped = np.load(lung_reg_params["projection"]["warped_file"])[0, 0]
     # warped, _ = resample(warped, np.array([1.5, 1.5, 1.5]), new_spacing)
 
+    if args.preprocess != "":
+        preprocessed_folder = args.preprocess
+    else: 
+        preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    disp_folder = args.disp_f
+    prefix = lung_reg_params["source_img"].split("/")[-3]
+    
     prop_file = lung_reg_params["preprocessed_folder"] + "/" + prefix + '_prop.npy'
     prop = np.load(prop_file, allow_pickle=True)
     bbox = prop.item().get("crop")
@@ -52,7 +88,8 @@ def main(args):
 
 
     croped, _ = resample(croped, np.array(spacing), np.array([1.5, 1.5, 1.5]))
-    phi = np.load(lung_reg_params["projection"]["disp_file"])
+    phi_file = disp_folder + "/" + prefix + "_affine_inverse_disp.npy"
+    phi = np.load(phi_file)
     warped = utils.compute_warped_image_multiNC(
         torch.from_numpy(croped).unsqueeze(0).unsqueeze(0),
         torch.from_numpy(phi), 1./(np.array(croped.shape)-1),
@@ -63,7 +100,7 @@ def main(args):
     source_marker_file = lung_reg_params["eval_marker_source_file"]
     target_marker_file = lung_reg_params["eval_marker_target_file"]
 
-    marker_list = np.flip(np.load("./log/marker_most_inaccurate.npy"))[0:20]
+    marker_list = np.flip(np.load("./log/marker_most_inaccurate.npy"))[0:1]
     source_marker = np.array(readPoint(source_marker_file)-1)*np.flip(spacing)
     target_marker = np.array(readPoint(target_marker_file)-1)*np.flip(spacing)
     warped_marker = np.load("./log/marker_warped.npy")
@@ -90,12 +127,19 @@ def main(args):
         plot_dot(target[:, nearest_int(m_w_t[1]), :], m_w_t[2], m_w_t[0], axes[2, 1], "y=%i"%nearest_int(m_w_t[1]))
         plot_dot(target[:, :, nearest_int(m_w_t[0])], m_w_t[2], m_w_t[1], axes[2, 2], "x=%i"%nearest_int(m_w_t[0]))
 
-        plot_dot(warped[nearest_int(m_w[2]), :, :], m_w[1], m_w[0], axes[3, 0], "z=%i"%nearest_int(m_w[2]+origin[2]))
-        axes[3, 0].set_ylabel("warped marker in warped image.")
-        plot_dot(warped[:, nearest_int(m_w[1]), :], m_w[2], m_w[0], axes[3, 1], "y=%i"%nearest_int(m_w[1]+origin[1]))
-        plot_dot(warped[:, :, nearest_int(m_w[0])], m_w[2], m_w[1], axes[3, 2], "x=%i"%nearest_int(m_w[0]+origin[0]))
+        target = target.astype(np.int)
+        source_itk = sitk.GetImageFromArray(source)
+        target_itk = sitk.GetImageFromArray(target)
+        overlay = sitk.LabelOverlay(source_itk, target_itk)
+        axes[3,0].imshow(overlay[nearest_int(m_s[2]), :, :], cmap=plt.cm.gray)
+        # axes[3,0].imshow(target[nearest_int(m_w_t[2]), :, :], cmap=plt.cm.gray)
+        # plot_dot(warped[nearest_int(m_w[2]), :, :], m_w[1], m_w[0], axes[3, 0], "z=%i"%nearest_int(m_w[2]+origin[2]))
+        # axes[3, 0].set_ylabel("warped marker in warped image.")
+        # plot_dot(warped[:, nearest_int(m_w[1]), :], m_w[2], m_w[0], axes[3, 1], "y=%i"%nearest_int(m_w[1]+origin[1]))
+        # plot_dot(warped[:, :, nearest_int(m_w[0])], m_w[2], m_w[1], axes[3, 2], "x=%i"%nearest_int(m_w[0]+origin[0]))
 
         plt.show()
+        plt.savefig("./figure/lung_registration.png")
     
 if __name__ == "__main__":
     args = parser.parse_args()

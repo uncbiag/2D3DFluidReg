@@ -150,6 +150,8 @@ def show_in_mermaid(args):
 
     d, w, h = I0.shape
 
+    
+
     if SHOW_SDT:
         file_list = os.listdir(I1_file)
         file_list.sort()
@@ -184,59 +186,67 @@ def show_in_mermaid(args):
     elif SHOW_DEMO_NPY:
         image = np.load(I1_file)
 
-    fig, ax = plt.subplots(3, 3)
+    pad_space = int((d-w)/2)
+    I0 = np.pad(I0,((0,0),(pad_space,pad_space),(0,0)), 'constant',constant_values=(0,0))
+    warped = np.pad(warped,((0,0),(pad_space,pad_space),(0,0)), 'constant',constant_values=(0,0))
+    image = np.pad(image,((0,0),(pad_space,pad_space),(0,0)), 'constant',constant_values=(0,0))
 
-    plt.setp(plt.gcf(), 'facecolor', 'white')
-    plt.style.use('bmh')
+    fig, ax = plt.subplots(1, 6)
+    fig.subplots_adjust(wspace=0.2)
 
-    ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Z slice')
-    ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'X slice')
-    ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Y slice')
-    ax[0,0].set_ylabel("Source")
+    # plt.setp(plt.gcf(), 'facecolor', 'white')
+    # plt.style.use('bmh')
+
+    viewers.ImageViewer3D_Sliced(ax[0], I0, 0, 'Z slice')
+    ax[0].set_title("Source", fontsize=6)
+    viewers.ImageViewer3D_Sliced(ax[3], I0, 1, 'X slice')
+    ax[3].set_title("Source",fontsize=6)
+    # ax[6].imshow(I0[:,:,60], cmap="gray",vmin=0.0, vmax=0.2)
+    # ax[6].set_title("Source",fontsize=6)
+    # ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Y slice')
 
     if not SHOW_DISP:
-        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Z slice')
-        warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'X slice')
-        warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Y slice')
+        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1], warped, 0, 'Z slice')
+        ax[1].set_title("Warped",fontsize=6)
+        warped_ivy = viewers.ImageViewer3D_Sliced(ax[4], warped, 1, 'X slice')
+        ax[4].set_title("Warped",fontsize=6)
+        # ax[7].imshow(warped[:,:,60], cmap="gray",vmin=0.0, vmax=0.2)
+        # ax[7].set_title("Warped",fontsize=6)
+        # warped_ivz = viewers.ImageViewer3D_Sliced(ax[0,5], warped, 2, 'Y slice')
     else:
-        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'Z slice')
-        warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'X slice')
-        warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'Y slice')
-    ax[1,0].set_ylabel("Warped")
+        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1], warped, phi, 0, 'Z slice')
+        ax[1].set_title("Warped",fontsize=6)
+        warped_ivy = ImageViewer3D_Sliced_Grids(ax[4], warped, phi, 1, 'X slice')
+        ax[4].set_title("Warped",fontsize=6)
+        # warped_set_titleivz = ImageViewer3D_Sliced_Grids(ax[0,5], warped, phi, 2, 'Y slice')
 
-    if SHOW_SDT:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Y slice')
-    elif SHOW_CT_IMG:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Y slice')
-    elif SHOW_DEMO_NPY:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], image, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], image, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], image, 2, 'Y slice')
-    ax[2,0].set_ylabel("Target")
+    
+    viewers.ImageViewer3D_Sliced(ax[2], image, 0, 'Z slice')
+    ax[2].set_title("Target",fontsize=6)
+    viewers.ImageViewer3D_Sliced(ax[5], image, 1, 'X slice')
+    ax[5].set_title("Target",fontsize=6)
+    # ax[8].imshow(image[:,:,60], cmap="gray",vmin=0.0, vmax=0.2)
+    # ax[8].set_title("Target",fontsize=6)
         
-    feh = viewers.FigureEventHandler(fig)
+    # feh = viewers.FigureEventHandler(fig)
 
-    feh.add_axes_event('button_press_event', ax[0,0], ivx.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[0,1], ivy.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[0,2], ivz.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[0,0], ivx.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[0,1], ivy.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[0,2], ivz.on_mouse_press)
 
-    feh.add_axes_event('button_press_event', ax[1,0], warped_ivx.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[1,1], warped_ivy.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[1,2], warped_ivz.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,0], warped_ivx.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,1], warped_ivy.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,2], warped_ivz.on_mouse_press)
 
-    if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
-        feh.add_axes_event('button_press_event', ax[2,0], warped_ivx_grids.on_mouse_press)
-        feh.add_axes_event('button_press_event', ax[2,1], warped_ivy_grids.on_mouse_press)
-        feh.add_axes_event('button_press_event', ax[2,2], warped_ivz_grids.on_mouse_press)
+    # if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
+    #     feh.add_axes_event('button_press_event', ax[2,0], warped_ivx_grids.on_mouse_press)
+    #     feh.add_axes_event('button_press_event', ax[2,1], warped_ivy_grids.on_mouse_press)
+    #     feh.add_axes_event('button_press_event', ax[2,2], warped_ivz_grids.on_mouse_press)
 
-    feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
+    # feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
 
     # plt.show()
-    plt.savefig("./figure/registration.png", dpi=200)
+    plt.savefig("./figure/registration.png", dpi=400,bbox_inches="tight",pad_inches=0.02)
 
 
 if __name__ == "__main__":

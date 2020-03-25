@@ -15,6 +15,8 @@ parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
 parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
                     help='Path of the folder contains displacement files.')
+parser.add_argument('--preprocess', '-p', metavar='PREPROCESS', default='',
+                    help='Path of the folder contains preprocess files.') 
 
 def readPoint(f_path):
     """
@@ -49,7 +51,7 @@ def calc_warped_points(source_list_t, phi_t, dim, spacing):
     :param spacing: image spacing.
     :return: a N*3 tensor containg warped positions in the physical coordinate.
     """
-    warped_list_t = F.grid_sample(phi_t, source_list_t)
+    warped_list_t = F.grid_sample(phi_t, source_list_t, align_corners=True)
 
     warped_list_t = torch.flip(warped_list_t.permute(0, 2, 3, 4, 1), [4])[0, 0, 0]
     warped_list_t = torch.mul(torch.mul(warped_list_t, torch.from_numpy(dim-1.)), torch.from_numpy(spacing))
@@ -71,6 +73,7 @@ def eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, plo
 
     res, res_seperate = eval_with_data(
         source_list, target_list, phi, dim, spacing, origin, plot_result)
+    return res, res_seperate
 
 def eval_with_data(source_list, target_list, phi, dim, spacing, origin, plot_result=False):
     """
@@ -298,26 +301,33 @@ def plot_one_marker(source_file, target_file, phi_file, dim_origin, spacing_orig
 
 
 
-
 if __name__ == "__main__":
     args = parser.parse_args()
     # Load Params
     lung_reg_params = pars.ParameterDict()
     lung_reg_params.load_JSON(args.setting)
     disp_folder = args.disp_f
+    if args.preprocess == "":
+        preprocessed_folder = lung_reg_params["preprocessed_folder"]
+    else:
+        preprocessed_folder = args.preprocess
     
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
     source_file = lung_reg_params["eval_marker_source_file"]
     target_file = lung_reg_params["eval_marker_target_file"]
     phi_file = disp_folder + "/" + prefix + "_affine_inverse_disp.npy"
-    prop_file = lung_reg_params["preprocessed_folder"] + '/' + prefix +'_prop.npy'
+    
+    prop_file = preprocessed_folder + '/' + prefix +'_prop.npy'
     
     prop = np.load(prop_file, allow_pickle=True)
     dim = np.flip(np.array(prop.item().get("dim")))
     origin = np.flip(prop.item().get("crop")[0:3])
     spacing = np.flip(lung_reg_params["spacing"]).copy()
 
+    eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
+
+    phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
     eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
     # ct_source_file = "../eval_data/preprocessed/ihale_3d.npy"
