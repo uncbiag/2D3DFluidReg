@@ -53,21 +53,6 @@ def resample(imgs, spacing, new_spacing, order=1):
     else:
         raise ValueError('wrong shape')
 
-
-def project(img, axis=0):
-    # img = torch.ones(img.shape).to(img.device) - img
-    return torch.sum(img, axis)
-
-
-def project_diagonal(img, delta_theta_x):
-    device = img.device
-    theta_x = torch.Tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0]]).to(device)*torch.cos(delta_theta_x)+\
-              torch.Tensor([[0, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 0]]).to(device)*torch.sin(delta_theta_x)
-
-    aff_grid = F.affine_grid(theta_x[0:3, :].unsqueeze(0), img.shape)
-    return torch.sum(F.grid_sample(img, aff_grid, padding_mode="zeros"), 3)
-
-
 def win_scale(data, wl, ww, dtype, out_range):
     """
     Scale pixel intensity data using specified window level, width, and intensity range.
@@ -145,30 +130,3 @@ if __name__=="__main__":
     #     proj_y[i] = (proj_y[i] - proj_y_min[i])/dur[i]*255
     np.save(processed_file_folder+"/projection.npy", image)
 
-    # Compare projection of CT and sDT
-    # case_torch = torch.from_numpy(case_pixels).to(device).float()
-    # tan_theta_x = np.arctan(138.16/1345.1434)
-    # theta_x = torch.tensor([tan_theta_x]).to(device)
-    # proj_x = project_diagonal(case_torch.unsqueeze(0).unsqueeze(0), theta_x)[0, 0].cpu().numpy()
-    # proj_x_max = np.max(proj_x)
-    # proj_x_min = np.min(proj_x)
-    # proj_x = (proj_x - proj_x_min)/(proj_x_max - proj_x_min)*255
-    # I0_np = proj_x.astype(np.uint8)
-
-    # sample_processed = F.interpolate(torch.from_numpy(proj_y[0]).unsqueeze(0).unsqueeze(0), proj_x.shape)
-    # sample_processed_np = sample_processed.data.numpy()[0, 0]
-    # I1_np = sample_processed_np.astype(np.uint8)
-
-    # # Compute the joint level of surprises
-    # h_I0I1, xedges, yedges = np.histogram2d(I0_np.ravel(), I1_np.ravel(), bins=256)
-    # h_I0I1 = h_I0I1/(I0_np.shape[0]*I0_np.shape[1])
-    # surprises = -np.log2(h_I0I1, where=np.where(h_I0I1!=0, True, False))
-
-    # figs, axes = plt.subplots(3, 2)
-    # axes[0,0].hist(I0_np)
-    # axes[0,1].imshow(I0_np, cmap='gray')
-    # axes[1,0].hist(I1_np)
-    # axes[1,1].imshow(I1_np, cmap='gray')
-    # axes[2,0].imshow(I0_np-I1_np)
-    # axes[2,1].imshow(surprises, cmap='gray')
-    # plt.savefig("./data/ctplayground.png")

@@ -7,7 +7,7 @@ from scipy.ndimage import gaussian_filter
 import torch
 import torch.nn.functional as F
 
-from CTPlayground import resample
+from medical_image_utils import resample
 
 import matplotlib.pyplot as plt
 

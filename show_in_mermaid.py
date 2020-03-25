@@ -6,7 +6,7 @@ import pydicom as dicom
 import os
 import torch
 from mermaid import image_sampling
-from CTPlayground import resample
+from medical_image_utils import resample
 import mermaid.module_parameters as pars
 from mermaid import utils as utils
 import argparse

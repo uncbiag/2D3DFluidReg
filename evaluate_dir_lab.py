@@ -7,7 +7,7 @@ import mermaid.module_parameters as pars
 
 import matplotlib.pyplot as plt
 
-from CTPlayground import resample
+from medical_image_utils import resample
 import argparse
 
 parser = argparse.ArgumentParser(description='Show registration result')

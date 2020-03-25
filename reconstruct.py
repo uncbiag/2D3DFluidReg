@@ -15,7 +15,7 @@ import os
 
 import matplotlib.pyplot as plt
 
-from CTPlayground import resample
+from medical_image_utils import resample
 
 
 class projection(nn.Module):
