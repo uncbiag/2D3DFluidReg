@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from evaluate_dir_lab import eval_with_file
 import mermaid.module_parameters as pars
+from array2gif import write_gif
 
 import os
 
@@ -83,102 +84,117 @@ def prepare_data_for_diff(case_name, angle_list, proj_num_list, reg_model, setti
             proj_num.append(proj_num_list[i])
     return total, x, y, z, angle, proj_num
 
+def draw_sDCT_gif(file_path, save_path):
+    img = np.load(file_path)
+    img = np.transpose(img, (1,0,2))
+    img = np.flip(img, 0)
+    img = (img-np.min(img))/(np.max(img)-np.min(img))*255
+    img = np.stack((img, img, img), axis=3)
+    # img = imageio.mimread(dicom_folder, 'DICOM')
+    write_gif(img[40:270], save_path, fps=20)
+
 if __name__ == "__main__":
     # result_folder = './results/resonstruct'
     # idx_list = ["001","002","003"]
     # draw_reconstruction_figure(result_folder, idx_list)
 
-    #############
-    #############
-    total, x, y, z, angle, proj_num = prepare_data_for_diff(
-        "Case5Pack", [11,16,21,26,31,36], [4], 
-        "affine","./lung_registration_setting_dct5.json", 
-        "../eval_data/preprocessed_diff_angle", 
-        "./results/exp_small_def_diff_angle")
-
-    fig, ax = plt.subplots()
-    ax.plot(angle, total, label="3D distance", marker='o')
-    ax.plot(angle, z, label="X", marker='o')
-    ax.plot(angle, x, label="Y", marker='o')
-    ax.plot(angle, y, label="Z", marker='o')
-    
-    ax.set_xticks(angle)
-    ax.set_yticks([0,1,2,3,4])
-    ax.set_xlabel("Scanning range of angles (degree)", fontsize=14)
-    ax.set_ylabel("Distance (mm)", fontsize=14)
-    ax.legend(loc=4, bbox_to_anchor=(1,0.0))
-    ax.set_title("Affine registration \n with various scanning range", fontsize=16)
-    plt.grid()
-    plt.savefig("./figure/diff_angles_affine.png", dpi=300, bbox_inches="tight")
-    plt.clf()
-    
-    #############
-    #############
-    total, x, y, z, angle, proj_num = prepare_data_for_diff(
-        "Case5Pack", [11,16,21,26,31,36], [4], 
-        "lddmm","./lung_registration_setting_dct5.json", 
-        "../eval_data/preprocessed_diff_angle", 
-        "./results/exp_small_def_diff_angle")
-
-    fig, ax = plt.subplots()
-    ax.plot(angle, total, label="3D distance", marker='o')
-    ax.plot(angle, z, label="X", marker='o')
-    ax.plot(angle, x, label="Y", marker='o')
-    ax.plot(angle, y, label="Z", marker='o')
-    
-    
-    ax.set_xticks(angle)
-    ax.set_yticks([0,1,2,3,4])
-    ax.set_xlabel("Scanning range of angles (degree)", fontsize=14)
-    ax.set_ylabel("Distance (mm)", fontsize=14)
-    ax.legend(loc=4, bbox_to_anchor=(1,0))
-    ax.set_title("LDDMM registration \n with various scanning range", fontsize=16)
-    plt.grid()
-    plt.savefig("./figure/diff_angles_lddmm.png", dpi=300,bbox_inches="tight")
-    plt.clf()
+    ############
+    ############
+    # file_path = "./results/reconstruct/001_rec.npy"
+    file_path = "../../Data/Preprocessed/sdt0001/ct.npy"
+    draw_sDCT_gif(file_path, "./figure/sdct0001_ct.gif")
 
     #############
     #############
-    total, x, y, z, angle, proj_num = prepare_data_for_diff(
-        "Case5Pack", [11], [4,6,8,10,12,14], 
-        "affine","./lung_registration_setting_dct5.json", 
-        "../eval_data/preprocessed_diff_angle", 
-        "./results/exp_small_def_diff_proj_num")
-    fig, ax = plt.subplots()
-    ax.plot(proj_num, total, label="3D distance", marker='o')
-    ax.plot(proj_num, z, label="X", marker='o')
-    ax.plot(proj_num, x, label="Y", marker='o')
-    ax.plot(proj_num, y, label="Z", marker='o')
+    # total, x, y, z, angle, proj_num = prepare_data_for_diff(
+    #     "Case5Pack", [11,16,21,26,31,36], [4], 
+    #     "affine","./lung_registration_setting_dct5.json", 
+    #     "../eval_data/preprocessed_diff_angle", 
+    #     "./results/exp_small_def_diff_angle")
+
+    # fig, ax = plt.subplots()
+    # ax.plot(angle, total, label="3D distance", marker='o')
+    # ax.plot(angle, z, label="X", marker='o')
+    # ax.plot(angle, x, label="Y", marker='o')
+    # ax.plot(angle, y, label="Z", marker='o')
     
-    ax.set_xticks(proj_num)
-    ax.set_yticks([0,1,2,3,4])
-    ax.set_xlabel("Number of projections", fontsize=14)
-    ax.set_ylabel("Distance (mm)", fontsize=14)
-    ax.legend(loc=4, bbox_to_anchor=(1,0.0))
-    ax.set_title("Affine registration \n with various projection number", fontsize=16)
-    plt.grid()
-    plt.savefig("./figure/diff_proj_affine.png", dpi=300,bbox_inches="tight")
-    plt.clf()
+    # ax.set_xticks(angle)
+    # ax.set_yticks([0,1,2,3,4])
+    # ax.set_xlabel("Scanning range of angles (degree)", fontsize=14)
+    # ax.set_ylabel("Distance (mm)", fontsize=14)
+    # ax.legend(loc=4, bbox_to_anchor=(1,0.0))
+    # ax.set_title("Affine registration \n with various scanning range", fontsize=16)
+    # plt.grid()
+    # plt.savefig("./figure/diff_angles_affine.png", dpi=300, bbox_inches="tight")
+    # plt.clf()
+    
+    #############
+    #############
+    # total, x, y, z, angle, proj_num = prepare_data_for_diff(
+    #     "Case5Pack", [11,16,21,26,31,36], [4], 
+    #     "lddmm","./lung_registration_setting_dct5.json", 
+    #     "../eval_data/preprocessed_diff_angle", 
+    #     "./results/exp_small_def_diff_angle")
+
+    # fig, ax = plt.subplots()
+    # ax.plot(angle, total, label="3D distance", marker='o')
+    # ax.plot(angle, z, label="X", marker='o')
+    # ax.plot(angle, x, label="Y", marker='o')
+    # ax.plot(angle, y, label="Z", marker='o')
+    
+    
+    # ax.set_xticks(angle)
+    # ax.set_yticks([0,1,2,3,4])
+    # ax.set_xlabel("Scanning range of angles (degree)", fontsize=14)
+    # ax.set_ylabel("Distance (mm)", fontsize=14)
+    # ax.legend(loc=4, bbox_to_anchor=(1,0))
+    # ax.set_title("LDDMM registration \n with various scanning range", fontsize=16)
+    # plt.grid()
+    # plt.savefig("./figure/diff_angles_lddmm.png", dpi=300,bbox_inches="tight")
+    # plt.clf()
 
     #############
     #############
-    total, x, y, z, angle, proj_num = prepare_data_for_diff(
-        "Case5Pack", [11], [4,6,8,10,12,14], 
-        "lddmm","./lung_registration_setting_dct5.json", 
-        "../eval_data/preprocessed_diff_angle", 
-        "./results/exp_small_def_diff_proj_num")
-    fig, ax = plt.subplots()
-    ax.plot(proj_num, total, label="3D distance", marker='o')
-    ax.plot(proj_num, z, label="X", marker='o')
-    ax.plot(proj_num, x, label="Y", marker='o')
-    ax.plot(proj_num, y, label="Z", marker='o')
+    # total, x, y, z, angle, proj_num = prepare_data_for_diff(
+    #     "Case5Pack", [11], [4,6,8,10,12,14], 
+    #     "affine","./lung_registration_setting_dct5.json", 
+    #     "../eval_data/preprocessed_diff_angle", 
+    #     "./results/exp_small_def_diff_proj_num")
+    # fig, ax = plt.subplots()
+    # ax.plot(proj_num, total, label="3D distance", marker='o')
+    # ax.plot(proj_num, z, label="X", marker='o')
+    # ax.plot(proj_num, x, label="Y", marker='o')
+    # ax.plot(proj_num, y, label="Z", marker='o')
     
-    ax.set_xticks(proj_num)
-    ax.set_yticks([0,1,2,3,4])
-    ax.set_xlabel("Number of projections", fontsize=14)
-    ax.set_title("LDDMM registration \n with various projection number", fontsize=16)
-    ax.set_ylabel("Distance (mm)", fontsize=14)
-    ax.legend(loc=4, bbox_to_anchor=(1,0.0))
-    plt.grid()
-    plt.savefig("./figure/diff_proj_lddmm.png", dpi=300,bbox_inches="tight")
-    plt.clf()
+    # ax.set_xticks(proj_num)
+    # ax.set_yticks([0,1,2,3,4])
+    # ax.set_xlabel("Number of projections", fontsize=14)
+    # ax.set_ylabel("Distance (mm)", fontsize=14)
+    # ax.legend(loc=4, bbox_to_anchor=(1,0.0))
+    # ax.set_title("Affine registration \n with various projection number", fontsize=16)
+    # plt.grid()
+    # plt.savefig("./figure/diff_proj_affine.png", dpi=300,bbox_inches="tight")
+    # plt.clf()
+
+    #############
+    #############
+    # total, x, y, z, angle, proj_num = prepare_data_for_diff(
+    #     "Case5Pack", [11], [4,6,8,10,12,14], 
+    #     "lddmm","./lung_registration_setting_dct5.json", 
+    #     "../eval_data/preprocessed_diff_angle", 
+    #     "./results/exp_small_def_diff_proj_num")
+    # fig, ax = plt.subplots()
+    # ax.plot(proj_num, total, label="3D distance", marker='o')
+    # ax.plot(proj_num, z, label="X", marker='o')
+    # ax.plot(proj_num, x, label="Y", marker='o')
+    # ax.plot(proj_num, y, label="Z", marker='o')
+    
+    # ax.set_xticks(proj_num)
+    # ax.set_yticks([0,1,2,3,4])
+    # ax.set_xlabel("Number of projections", fontsize=14)
+    # ax.set_title("LDDMM registration \n with various projection number", fontsize=16)
+    # ax.set_ylabel("Distance (mm)", fontsize=14)
+    # ax.legend(loc=4, bbox_to_anchor=(1,0.0))
+    # plt.grid()
+    # plt.savefig("./figure/diff_proj_lddmm.png", dpi=300,bbox_inches="tight")
+    # plt.clf()
