@@ -1,15 +1,17 @@
-from mermaid import viewers
-import mermaid
-import numpy as np
-import matplotlib.pyplot as plt
-import pydicom as dicom
-import os
-import torch
-from mermaid import image_sampling
-from medical_image_utils import resample
-import mermaid.module_parameters as pars
-from mermaid import utils as utils
 import argparse
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pydicom as dicom
+import torch
+
+import mermaid
+import mermaid.module_parameters as pars
+from mermaid import image_sampling
+from mermaid import utils as utils
+from mermaid import viewers
+from utils.medical_image_utils import resample
 
 parser = argparse.ArgumentParser(description='Show registration result')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
@@ -64,9 +66,9 @@ class ImageViewer3D_Sliced_Grids(viewers.ImageViewer3D_Sliced):
         plt.sca(self.ax)
         phiSliced = self.get_phi_slice_at_dimension(self.index)
         for d in range(0,self.sliceDim):
-            plt.contour(phiSliced[d,:,:], np.linspace(0,self.data.shape[d],20),colors='red',linestyles='solid', linewidths=0.7)
+            plt.contour(phiSliced[d,:,:], np.linspace(0,self.data.shape[d],20),colors='red',linestyles='solid', linewidths=0.3)
         for d in range(self.sliceDim+1,3):
-            plt.contour(phiSliced[d,:,:], np.linspace(0,self.data.shape[d],20),colors='red',linestyles='solid', linewidths=0.7)
+            plt.contour(phiSliced[d,:,:], np.linspace(0,self.data.shape[d],20),colors='red',linestyles='solid', linewidths=0.3)
 
     def previous_slice(self):
         """
@@ -107,7 +109,7 @@ def show_in_mermaid(args):
 
     SHOW_SDT = False
     SHOW_CT_IMG = False
-    SHOW_DISP = False
+    SHOW_DISP = True
     SHOW_DEMO_NPY = True
     SHOW_RECONSTRUCTION_NPY = False
 
@@ -118,8 +120,9 @@ def show_in_mermaid(args):
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
     I0_file = preprocessed_folder + "/" + prefix + "_I0_3d.npy"
-    disp_file = disp_folder + "/" + prefix + "_lddmm_disp.npy"
-    warped_file = disp_folder + "/" + prefix + "_lddmm_warped.npy"
+    disp_file = disp_folder + "/" + prefix + "_affine_disp.npy"
+    warped_file = disp_folder + "/" + prefix + "_affine_warped.npy"
+    I0_rec_file = disp_folder + "/" + prefix + "_affine_recon.npy"
 
     if SHOW_SDT:
         I1_file = "../../Data/Raw/DICOMforMN/DICOM/S00002/SER00001"
@@ -140,13 +143,14 @@ def show_in_mermaid(args):
     prop = np.load(preprocessed_folder + "/" + prefix + "_prop.npy", allow_pickle=True)
     dim = np.array(prop.item().get("dim"))
 
-    spacing = dim/np.array([1.5, 1.5, 1.5])
+    spacing = dim/np.array([1., 1., 1.])
     # spacing = np.array([64, 64, 64])
     # affine_phi = torch.from_numpy(np.load(affine_phi)[0])
     # I0 = utils.compute_warped_image(torch.from_numpy(np.load(I0_file)), affine_phi, 1./(spacing-1.), 1).cpu() 
     I0 = np.load(I0_file)
     phi = np.swapaxes(np.multiply(np.swapaxes(np.load(disp_file)[0], 0, 3), spacing), 0, 3)
     warped = np.load(warped_file)[0,0]
+    # I0_rec = np.load(I0_rec_file)[0,0]
 
     d, w, h = I0.shape
 
@@ -184,39 +188,48 @@ def show_in_mermaid(args):
     elif SHOW_DEMO_NPY:
         image = np.load(I1_file)
 
-    fig, ax = plt.subplots(3, 3)
+    fig, ax = plt.subplots(4, 3)
 
     plt.setp(plt.gcf(), 'facecolor', 'white')
     plt.style.use('bmh')
 
-    ivx = viewers.ImageViewer3D_Sliced(ax[0,0], I0, 0, 'Z slice')
-    ivy = viewers.ImageViewer3D_Sliced(ax[0,1], I0, 1, 'X slice')
-    ivz = viewers.ImageViewer3D_Sliced(ax[0,2], I0, 2, 'Y slice')
-    ax[0,0].set_ylabel("Source")
+    cur_ax = ax[0]
+    ivx = viewers.ImageViewer3D_Sliced(cur_ax[0], I0, 0, 'Z slice')
+    ivy = viewers.ImageViewer3D_Sliced(cur_ax[1], I0, 1, 'X slice')
+    ivz = viewers.ImageViewer3D_Sliced(cur_ax[2], I0, 2, 'Y slice')
+    cur_ax[0].set_ylabel("Source")
 
+    # cur_ax = ax[1]
+    # rec_ivx = viewers.ImageViewer3D_Sliced(cur_ax[0], I0_rec, 0, 'Z slice')
+    # rec_ivy = viewers.ImageViewer3D_Sliced(cur_ax[1], I0_rec, 1, 'X slice')
+    # rec_ivz = viewers.ImageViewer3D_Sliced(cur_ax[2], I0_rec, 2, 'Y slice')
+    # cur_ax[0].set_ylabel("Reconstructed")
+
+    cur_ax = ax[2]
     if not SHOW_DISP:
-        warped_ivx = viewers.ImageViewer3D_Sliced(ax[1,0], warped, 0, 'Z slice')
-        warped_ivy = viewers.ImageViewer3D_Sliced(ax[1,1], warped, 1, 'X slice')
-        warped_ivz = viewers.ImageViewer3D_Sliced(ax[1,2], warped, 2, 'Y slice')
+        warped_ivx = viewers.ImageViewer3D_Sliced(cur_ax[0], warped, 0, 'Z slice')
+        warped_ivy = viewers.ImageViewer3D_Sliced(cur_ax[1], warped, 1, 'X slice')
+        warped_ivz = viewers.ImageViewer3D_Sliced(cur_ax[2], warped, 2, 'Y slice')
     else:
-        warped_ivx = ImageViewer3D_Sliced_Grids(ax[1,0], warped, phi, 0, 'Z slice')
-        warped_ivy = ImageViewer3D_Sliced_Grids(ax[1,1], warped, phi, 1, 'X slice')
-        warped_ivz = ImageViewer3D_Sliced_Grids(ax[1,2], warped, phi, 2, 'Y slice')
-    ax[1,0].set_ylabel("Warped")
+        warped_ivx = ImageViewer3D_Sliced_Grids(cur_ax[0], warped, phi, 0, 'Z slice')
+        warped_ivy = ImageViewer3D_Sliced_Grids(cur_ax[1], warped, phi, 1, 'X slice')
+        warped_ivz = ImageViewer3D_Sliced_Grids(cur_ax[2], warped, phi, 2, 'Y slice')
+    cur_ax[0].set_ylabel("Warped")
 
+    cur_ax = ax[3]
     if SHOW_SDT:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], sdt, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], sdt, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], sdt, 2, 'Y slice')
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(cur_ax[0], sdt, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(cur_ax[1], sdt, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(cur_ax[2], sdt, 2, 'Y slice')
     elif SHOW_CT_IMG:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], ct_img, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], ct_img, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], ct_img, 2, 'Y slice')
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(cur_ax[0], ct_img, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(cur_ax[1], ct_img, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(cur_ax[2], ct_img, 2, 'Y slice')
     elif SHOW_DEMO_NPY:
-        warped_ivx_grids = viewers.ImageViewer3D_Sliced(ax[2,0], image, 0, 'Z slice')
-        warped_ivy_grids = viewers.ImageViewer3D_Sliced(ax[2,1], image, 1, 'X slice')
-        warped_ivz_grids = viewers.ImageViewer3D_Sliced(ax[2,2], image, 2, 'Y slice')
-    ax[2,0].set_ylabel("Target")
+        warped_ivx_grids = viewers.ImageViewer3D_Sliced(cur_ax[0], image, 0, 'Z slice')
+        warped_ivy_grids = viewers.ImageViewer3D_Sliced(cur_ax[1], image, 1, 'X slice')
+        warped_ivz_grids = viewers.ImageViewer3D_Sliced(cur_ax[2], image, 2, 'Y slice')
+    cur_ax[0].set_ylabel("Target")
         
     feh = viewers.FigureEventHandler(fig)
 
@@ -224,19 +237,23 @@ def show_in_mermaid(args):
     feh.add_axes_event('button_press_event', ax[0,1], ivy.on_mouse_press)
     feh.add_axes_event('button_press_event', ax[0,2], ivz.on_mouse_press)
 
-    feh.add_axes_event('button_press_event', ax[1,0], warped_ivx.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[1,1], warped_ivy.on_mouse_press)
-    feh.add_axes_event('button_press_event', ax[1,2], warped_ivz.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,0], rec_ivx.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,1], rec_ivy.on_mouse_press)
+    # feh.add_axes_event('button_press_event', ax[1,2], rec_ivz.on_mouse_press)
+
+    feh.add_axes_event('button_press_event', ax[2,0], warped_ivx.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[2,1], warped_ivy.on_mouse_press)
+    feh.add_axes_event('button_press_event', ax[2,2], warped_ivz.on_mouse_press)
 
     if SHOW_CT_IMG or SHOW_SDT or SHOW_DEMO_NPY:
-        feh.add_axes_event('button_press_event', ax[2,0], warped_ivx_grids.on_mouse_press)
-        feh.add_axes_event('button_press_event', ax[2,1], warped_ivy_grids.on_mouse_press)
-        feh.add_axes_event('button_press_event', ax[2,2], warped_ivz_grids.on_mouse_press)
+        feh.add_axes_event('button_press_event', ax[3,0], warped_ivx_grids.on_mouse_press)
+        feh.add_axes_event('button_press_event', ax[3,1], warped_ivy_grids.on_mouse_press)
+        feh.add_axes_event('button_press_event', ax[3,2], warped_ivz_grids.on_mouse_press)
 
-    feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2]])
+    feh.synchronize([ax[0,0], ax[0,1], ax[0,2], ax[1,0], ax[1,1], ax[1,2],ax[2,0], ax[2,1], ax[2,2],ax[3,0], ax[3,1], ax[3,2]])
 
     # plt.show()
-    plt.savefig("./figure/registration.png", dpi=200)
+    plt.savefig("./log/registration.png", dpi=200)
 
 
 if __name__ == "__main__":

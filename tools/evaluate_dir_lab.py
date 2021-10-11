@@ -7,7 +7,7 @@ import mermaid.module_parameters as pars
 
 import matplotlib.pyplot as plt
 
-from medical_image_utils import resample
+from utils.medical_image_utils import resample
 import argparse
 
 parser = argparse.ArgumentParser(description='Show registration result')
@@ -54,6 +54,7 @@ def calc_warped_points(source_list_t, phi_t, dim, spacing):
     warped_list_t = F.grid_sample(phi_t, source_list_t, align_corners=True)
 
     warped_list_t = torch.flip(warped_list_t.permute(0, 2, 3, 4, 1), [4])[0, 0, 0]
+    # warped_list_t = warped_list_t.permute(0, 2, 3, 4, 1)[0, 0, 0]
     warped_list_t = torch.mul(torch.mul(warped_list_t, torch.from_numpy(dim-1.)), torch.from_numpy(spacing))
 
     return warped_list_t
@@ -327,8 +328,8 @@ if __name__ == "__main__":
 
     eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
-    phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
-    eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
+    # phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
+    # eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
     # ct_source_file = "../eval_data/preprocessed/ihale_3d.npy"
     # ct_target_file = "../eval_data/preprocessed/ehale_3d.npy"
