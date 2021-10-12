@@ -1,4 +1,4 @@
-# lung_sdt_ct
+# 2D/3D Fluid Registration
 
 This is the repository for paper [Fluid Registration Between Lung CT and Stationary Chest Tomosynthesis Images](https://drive.google.com/file/d/1-gORB0x9qa8hDpnpLSISXGmb9I6j9SG9/edit), MICCAI 2020
 
