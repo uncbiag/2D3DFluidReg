@@ -2,9 +2,10 @@
 
 This is the repository for paper [Fluid Registration Between Lung CT and Stationary Chest Tomosynthesis Images](https://drive.google.com/file/d/1-gORB0x9qa8hDpnpLSISXGmb9I6j9SG9/edit), MICCAI 2020
 
-In this work we propose a differentiable projection operator. We use this operator in a 2D3D image registration framework.
-![Differentiable projectionoperator](https://github.com/uncbiag/lung_sdt_ct/tree/dev/readme_materials/miccai_fig2.png)
-![Model Structure](https://github.com/uncbiag/lung_sdt_ct/tree/dev/readme_materials/miccai_fig1.png)
+In this work we propose a differentiable projection operator. 
+![Differentiable projectionoperator](/readme_materials/miccai_fig2.png)
+This operator can be used in a 2D3D deformable registration framework as shown below. 
+![Model Structure](/readme_materials/miccai_fig1.png)
 
 
 # Installation
