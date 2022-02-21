@@ -1,4 +1,5 @@
 from mermaid.similarity_measure_factory import SimilarityMeasure, NCCSimilarity, LNCCSimilarity, SSDSimilarity, OptimalMassTransportSimilarity
+from mermaid.data_wrapper import MyTensor
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
@@ -54,8 +55,8 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
        :return: (NCC)/sigma^2
        """
         sim = 0.
-        proj_sim = 0.
-        grad_sim = 0.
+        proj_sim = MyTensor(1).zero_()
+        grad_sim = MyTensor(1).zero_()
         proj_res = [I1.shape[2], I1.shape[3]]
         emi_poses = self.emi_poses_scale*I0.shape[3]
 
@@ -174,14 +175,14 @@ class SdtCTProjectionSimilarity(SimilarityMeasure):
         # print(torch.cuda.memory_allocated(device=0)/(2**20))
         return sim/len(emi_poses) #/self.sigma**2
 
-    def project(self, I0, emi_poses_scale, proj_res, sample_rate):
-        emi_poses = emi_poses_scale*I0.shape[3]
-        grids, dx = self._project_grid_multi(emi_poses, proj_res, self.sample_rate, I0.shape[2:], self.proj_spacing, I0.device)
+    def project(self, I0, poses_scale, resolution, sample_rate):
+        emi_poses = poses_scale*I0.shape[3]
+
+        grids, dx = self._project_grid_multi(emi_poses, resolution, self.sample_rate, I0.shape[2:], self.proj_spacing, I0.device)
         grids = torch.flip(grids, [4])
         (p, d, h, w) = grids.shape[0:4]
         b = I0.shape[0]
         grids = torch.reshape(grids, (1,1,1,-1,3))
-        # dx = dx.unsqueeze(1).unsqueeze(1)
         proj = torch.mul(torch.sum(F.grid_sample(I0, grids, align_corners = True).reshape((b, p, d, h, w)), dim=4), dx).float()
 
         del grids

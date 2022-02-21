@@ -130,7 +130,7 @@
                 "sigma": 0.1,
                 "type": "ncc",
                 "projection":{
-                    "base":"lncc"
+                    "base":"ncc"
                 }
             },
             "spline_order": 1,
@@ -159,7 +159,7 @@
             "verbose": true
         },
         "single_scale": {
-            "nr_of_iterations": 200,
+            "nr_of_iterations": 1,
             "rel_ftol": 1e-05
         },
         "multi_scale": {

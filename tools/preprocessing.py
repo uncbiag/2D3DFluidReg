@@ -193,14 +193,14 @@ def preprocessData(source_file, target_file, dest_folder, dest_prefix, shape, sp
     prop["dim"] = [bbox[3]-bbox[0], bbox[4]-bbox[1], bbox[5]-bbox[2]]
 
     # Crop and resample the image
-    img_0 = img_0 #* mask_0 #* 255
+    img_0 = img_0 * mask_0 
     img_0 = img_0.astype(np.float32)
     img_0 = img_0[bbox[0]:bbox[3], bbox[1]:bbox[4], bbox[2]:bbox[5]]
     mask_0 = mask_0[bbox[0]:bbox[3], bbox[1]:bbox[4], bbox[2]:bbox[5]]
     img_0, _ = resample(img_0, np.array(spacing), new_spacing)
     mask_0, _ = resample(mask_0, np.array(spacing), new_spacing)
 
-    img_1 = img_1 #* mask_1 #* 255
+    img_1 = img_1 * mask_1 
     img_1 = img_1.astype(np.float32)
     img_1 = img_1[bbox[0]:bbox[3], bbox[1]:bbox[4], bbox[2]:bbox[5]]
     mask_1 = mask_1[bbox[0]:bbox[3], bbox[1]:bbox[4], bbox[2]:bbox[5]]

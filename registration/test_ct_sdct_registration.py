@@ -1,21 +1,19 @@
 # the parameter module which will keep track of all the registration parameters
-import mermaid.module_parameters as pars
-# and some mermaid functionality to create test data
-import mermaid.example_generation as EG
+import argparse
+import os
+import warnings
+
 import mermaid
+# and some mermaid functionality to create test data
+import mermaid.module_parameters as pars
+import numpy as np
+import pandas as pd
+import torch
 from mermaid import multiscale_optimizer as MO
 from mermaid import utils as MUtils
 
-import torch
-import torch.nn.functional as F
-import pandas as pd
-import numpy as np
-import os
+from registration.similarity_measure import SdtCTProjectionSimilarity
 
-from Similarity_measure import SdtCTProjectionSimilarity
-import argparse
-
-import warnings
 warnings.filterwarnings("ignore")
 
 use_cuda = torch.cuda.is_available()

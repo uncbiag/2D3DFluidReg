@@ -174,7 +174,7 @@
         },
         "multi_scale": {
             "scale_factors":[1.0, 0.5, 0.25],
-            "scale_iterations":[1000, 1000, 1000]
+            "scale_iterations":[200, 200, 400]
         },
         "use_step_size_scheduler": true,
         "weight_clipping_type": "none",

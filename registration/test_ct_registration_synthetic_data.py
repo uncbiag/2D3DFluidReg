@@ -1,18 +1,14 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
-import mermaid.example_generation as EG
-import mermaid.module_parameters as pars
-import Similarity_measure
-from preprocessing import preprocessData, calculate_projection
-
-import mermaid
-from mermaid import multiscale_optimizer as MO
-import mermaid.module_parameters as pars
 import os
 
-from evaluate_dir_lab import eval_with_data, readPoint, eval_with_file
+import mermaid
+import mermaid.example_generation as EG
+import mermaid.module_parameters as pars
+import numpy as np
+import torch
+from mermaid import multiscale_optimizer as MO
+from tools.preprocessing import calculate_projection
+
+import registration.similarity_measure as similarity_measure
 
 # Synthesize projection angel
 poses = np.array([#[-0.6, 2., -0.06],
@@ -125,7 +121,7 @@ opt = MO.SimpleSingleScaleRegistration(I0,
                                        compute_inverse_map=False)
 
 opt.get_optimizer().set_model(mermaid_params['model']['registration_model']['type'])
-opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
+opt.get_optimizer().add_similarity_measure("projection", similarity_measure.SdtCTProjectionSimilarity)
 # opt.get_optimizer().set_initial_map(disp_map)
 
 opt.get_optimizer().set_visualization(True)

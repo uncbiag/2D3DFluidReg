@@ -1,23 +1,18 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
-import mermaid.example_generation as EG
-import mermaid.module_parameters as pars
-import Similarity_measure
-from tools.preprocessing import preprocessData, calculate_projection, smoother
+import argparse
+import os
+import warnings
 
 import mermaid
-from mermaid import multiscale_optimizer as MO
+import mermaid.module_parameters as pars
+import numpy as np
+import torch
 from mermaid import utils as MUtils
-import os
+from tools.evaluate_dir_lab import eval_with_file
+from tools.preprocessing import preprocessData
 
-from tools.evaluate_dir_lab import eval_with_data, readPoint, eval_with_file
+import registration.similarity_measure as similarity_measure
+from customMermaidOptimizer import SimpleMultiScaleRegistrationFor2D3D
 
-from Similarity_measure import SdtCTProjectionSimilarity
-import argparse
-
-import warnings
 warnings.filterwarnings("ignore")
 
 #############################
@@ -26,8 +21,8 @@ warnings.filterwarnings("ignore")
 parser = argparse.ArgumentParser(description='3D/2D registration')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
                     help='setting')
-parser.add_argument('--disp_f', '-d', metavar='DISP_F', default='',
-                    help='Path of the folder contains displacement files.')   
+parser.add_argument('--output', '-o', default='',
+                    help='The path to the root folder storing expriment information.')   
 parser.add_argument('--preprocess', '-p', metavar='PREPROCESS', default='',
                     help='Path of the folder contains preprocess files.')  
 parser.add_argument('--angle', type=int, default=11,
@@ -35,15 +30,17 @@ parser.add_argument('--angle', type=int, default=11,
 parser.add_argument('--projection_num', type=int, default=4,
                     help='The number of projection used.')   
 parser.add_argument('--resolution_scale', type=float, default=1.4,
-                    help='The number of projection used.')                              
+                    help='The number of projection used.')     
+parser.add_argument('--exp_name', type=str, default="debug",
+                    help='The path to the root folder storing expriment information.')                        
 
 def main(args):
     lung_reg_params = pars.ParameterDict()
     lung_reg_params.load_JSON(args.setting)
 
-    exp_path = args.disp_f
-    if not os.path.exists(exp_path):
-        os.makedirs(exp_path, exist_ok=True)
+    result_path = os.path.join(args.output, f"{args.exp_name}/results")
+    if not os.path.exists(result_path):
+        os.makedirs(result_path, exist_ok=True)
 
     # Synthesize projection angle
     angle = 11
@@ -66,7 +63,7 @@ def main(args):
     #############################
     # Data Preprocessing
     resolution_scale = args.resolution_scale
-    new_spacing = [1.5, 1.5, 1.5]
+    new_spacing = [1., 1., 1.]
     sample_rate = [int(1), int(1), int(1)]
 
     shape = lung_reg_params["shape"]
@@ -126,15 +123,12 @@ def main(args):
 
         mermaid_params_affine = pars.ParameterDict()
         mermaid_params_affine.load_JSON(lung_reg_params["affine"]["setting"])
-        mermaid_params_affine['optimizer']['single_scale']['nr_of_iterations'] = 200
-        mermaid_params_affine['optimizer']["name"]="sgd"
-        # mermaid_params_affine['optimizer']['sgd']['individual']['lr'] = 5e-04
         mermaid_params_affine['model']['registration_model']['emitter_pos_scale_list'] = poses_scale.tolist()
         mermaid_params_affine['model']['registration_model']["similarity_measure"]["projection"]["spacing"] = new_spacing
         mermaid_params_affine['model']['registration_model']["similarity_measure"]["projection"]["resolution_scale"] = resolution_scale
         mermaid_params_affine['model']['registration_model']["similarity_measure"]["projection"]["currentScaleFactor"] = 1.0
 
-        affine_opt = MO.SimpleMultiScaleRegistration(I0,
+        affine_opt = SimpleMultiScaleRegistrationFor2D3D(I0,
                                                     I1_proj,
                                                     mermaid_spacing,
                                                     sz,
@@ -142,30 +136,30 @@ def main(args):
                                                     compute_inverse_map=True)
 
         affine_opt.get_optimizer().set_model(mermaid_params_affine['model']['registration_model']['type'])
-        affine_opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
+        affine_opt.get_optimizer().add_similarity_measure("projection", similarity_measure.SdtCTProjectionSimilarity)
 
         affine_opt.get_optimizer().set_visualization(False)
-        affine_opt.get_optimizer().set_visualize_step(50)
+        affine_opt.get_optimizer().set_visualize_step(100)
         affine_opt.get_optimizer().set_save_fig(True)
-        affine_opt.get_optimizer().set_expr_name("3d_2d")
-        affine_opt.get_optimizer().set_save_fig_path("./log")
+        affine_opt.get_optimizer().set_expr_name(f"{args.exp_name}/plots")
+        affine_opt.get_optimizer().set_save_fig_path(args.output)
         affine_opt.get_optimizer().set_pair_name(["affine"])
 
         affine_opt.register()
 
         disp_map = affine_opt.get_map().detach()
-        np.save(os.path.join(exp_path, prefix + "_affine_disp.npy"), disp_map.cpu().numpy())
-        np.save(os.path.join(exp_path, prefix + "_affine_warped.npy"), affine_opt.get_warped_image().detach().cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_affine_disp.npy"), disp_map.cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_affine_warped.npy"), affine_opt.get_warped_image().detach().cpu().numpy())
         inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().ssOpt.model.Ab),
                                                                 affine_opt.get_optimizer().ssOpt.get_initial_inverse_map()).detach()
         # inverse_map = MUtils.apply_affine_transform_to_map_multiNC(MUtils.get_inverse_affine_param(affine_opt.get_optimizer().model.Ab),
         #                                                         affine_opt.get_initial_inverse_map()).detach()
         # print(affine_opt.get_optimizer().model.Ab)
-        np.save(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"), inverse_map.cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_affine_inverse_disp.npy"), inverse_map.cpu().numpy())
 
         eval_with_file(lung_reg_params["eval_marker_source_file"],
                     lung_reg_params["eval_marker_target_file"],
-                    os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"),
+                    os.path.join(result_path, prefix + "_affine_inverse_disp.npy"),
                     croped_dim.copy(),
                     np.flip(np.array(spacing)).copy(),
                     origin,
@@ -182,8 +176,8 @@ def main(args):
 
         try:
           if lung_reg_params["deformable"]["use_affine"]:
-            disp_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_disp.npy"))).to(device)
-            inverse_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"))).to(device)
+            disp_map = torch.from_numpy(np.load(os.path.join(result_path, prefix + "_affine_disp.npy"))).to(device)
+            inverse_map = torch.from_numpy(np.load(os.path.join(result_path, prefix + "_affine_inverse_disp.npy"))).to(device)
         except:
           disp_map = None
           inverse_map = None
@@ -193,12 +187,12 @@ def main(args):
         mermaid_params_proj['optimizer']['single_scale']['nr_of_iterations'] = 100
         # mermaid_params_proj['optimizer']["name"]="sgd"
         mermaid_params_proj['model']['registration_model']['type'] = "lddmm_shooting_map" # "svf_vector_momentum_map"#"lddmm_shooting_map"
-        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.1
+        mermaid_params_proj['model']['registration_model']['similarity_measure']['sigma'] = 0.01
         mermaid_params_proj['model']['registration_model']["similarity_measure"]["projection"]["spacing"] = new_spacing
         mermaid_params_proj['model']['registration_model']["similarity_measure"]["projection"]["currentScaleFactor"] = [1.0, 1.0, 1.0]
         mermaid_params_proj['model']['registration_model']["similarity_measure"]["projection"]["resolution_scale"] = resolution_scale
         # mermaid_params_proj['model']['registration_model']['similarity_measure']['type'] = 'ncc'
-        opt = MO.SimpleMultiScaleRegistration(I0,
+        opt = SimpleMultiScaleRegistrationFor2D3D(I0,
                                             I1_proj,
                                             mermaid_spacing,
                                             sz,
@@ -206,15 +200,15 @@ def main(args):
                                             compute_inverse_map=True)
 
         opt.get_optimizer().set_model(mermaid_params_proj['model']['registration_model']['type'])
-        opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
+        opt.get_optimizer().add_similarity_measure("projection", similarity_measure.SdtCTProjectionSimilarity)
         if lung_reg_params['deformable']['use_affine'] and (disp_map is not None) and (inverse_map is not None):
           opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
         opt.get_optimizer().set_visualization(False)
-        opt.get_optimizer().set_visualize_step(20)
+        opt.get_optimizer().set_visualize_step(100)
         opt.get_optimizer().set_save_fig(True)
-        opt.get_optimizer().set_expr_name("3d_2d")
-        opt.get_optimizer().set_save_fig_path("./log")
+        opt.get_optimizer().set_expr_name(f"{args.exp_name}/plots")
+        opt.get_optimizer().set_save_fig_path(args.output)
         opt.get_optimizer().set_pair_name(["lddmm"])
 
         opt.register()
@@ -223,9 +217,9 @@ def main(args):
 
         # ###############################
         # # Save the results
-        np.save(os.path.join(exp_path, prefix + "_lddmm_disp.npy"), opt.get_map().detach().cpu().numpy())
-        np.save(os.path.join(exp_path, prefix + "_lddmm_warped.npy"), opt.get_warped_image().detach().cpu().numpy())
-        np.save(os.path.join(exp_path, prefix + "_lddmm_inverse_disp.npy"), opt.get_inverse_map().detach().cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_lddmm_disp.npy"), opt.get_map().detach().cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_lddmm_warped.npy"), opt.get_warped_image().detach().cpu().numpy())
+        np.save(os.path.join(result_path, prefix + "_lddmm_inverse_disp.npy"), opt.get_inverse_map().detach().cpu().numpy())
         # mermaid_params.write_JSON(lung_reg_params["mermaid_setting_file"])
 
         del opt
@@ -233,7 +227,7 @@ def main(args):
 
         eval_with_file(lung_reg_params["eval_marker_source_file"],
                     lung_reg_params["eval_marker_target_file"],
-                    os.path.join(exp_path, prefix + "_lddmm_inverse_disp.npy"),
+                    os.path.join(result_path, prefix + "_lddmm_inverse_disp.npy"),
                     croped_dim.copy(),
                     np.flip(np.array(spacing)).copy(),
                     origin,

@@ -1,24 +1,15 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
-import mermaid.example_generation as EG
-import mermaid.module_parameters as pars
-import Similarity_measure
-from preprocessing import preprocessData, calculate_projection, smoother
+import argparse
+import os
+import warnings
 
 import mermaid
+import mermaid.module_parameters as pars
+import numpy as np
+import torch
 from mermaid import multiscale_optimizer as MO
 from mermaid import utils as MUtils
-import mermaid.module_parameters as pars
-import os
+from tools.evaluate_dir_lab import eval_with_file
 
-from evaluate_dir_lab import eval_with_data, readPoint, eval_with_file
-
-from Similarity_measure import SdtCTProjectionSimilarity, NGFSimilarity
-import argparse
-
-import warnings
 warnings.filterwarnings("ignore")
 
 #############################
@@ -49,7 +40,6 @@ def main(args):
     else:
         preprocessed_folder = args.preprocess
     
-    reconstructed_folder = args.result
       
     prefix = lung_reg_params["source_img"].split("/")[-3]
 
@@ -64,7 +54,6 @@ def main(args):
 
     # Target data
     I1_numpy = np.load(preprocessed_folder+'/' + prefix + '_I1_3d.npy')
-    # I1_numpy = np.load(reconstructed_folder+'/' + prefix + '.npy')[0,0]
     I1 = torch.from_numpy(I1_numpy).unsqueeze(0).unsqueeze(0).to(device)
 
     prop = np.load(preprocessed_folder + "/" + prefix + "_prop.npy", allow_pickle = True)
@@ -90,9 +79,6 @@ def main(args):
                                                     sz,
                                                     mermaid_params_affine,
                                                     compute_inverse_map=True)
-
-        # affine_opt.get_optimizer().set_model(mermaid_params_affine['model']['registration_model']['type'])
-        # affine_opt.get_optimizer().add_similarity_measure("projection", Similarity_measure.SdtCTProjectionSimilarity)
 
         affine_opt.get_optimizer().set_visualization(False)
         # affine_opt.get_optimizer().set_visualize_step(50)
@@ -131,8 +117,6 @@ def main(args):
         mermaid_params_proj.load_JSON(lung_reg_params["deformable"]["setting"])
 
         try:
-          # disp_map = torch.from_numpy(np.load(os.path.join("./results/exp_small_def_11_degree", prefix + "_lddmm_disp.npy"))).to(device)
-          # inverse_map = torch.from_numpy(np.load(os.path.join("./results/exp_small_def_11_degree", prefix + "_lddmm_inverse_disp.npy"))).to(device)
           if lung_reg_params["deformable"]["use_affine"]:
             disp_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_disp.npy"))).to(device)
             inverse_map = torch.from_numpy(np.load(os.path.join(exp_path, prefix + "_affine_inverse_disp.npy"))).to(device)
@@ -153,8 +137,6 @@ def main(args):
                                             sz,
                                             mermaid_params_proj,
                                             compute_inverse_map=True)
-        # opt.get_optimizer().set_model(mermaid_params_proj['model']['registration_model']['type'])
-        # opt.get_optimizer().add_similarity_measure("ngf", NGFSimilarity)
         if lung_reg_params['deformable']['use_affine'] and (disp_map is not None) and (inverse_map is not None):
           opt.get_optimizer().set_initial_map(disp_map, map0_inverse = inverse_map)
 
@@ -183,14 +165,6 @@ def main(args):
                     np.flip(np.array(spacing)).copy(),
                     origin,
                     False)
-
-        # eval_with_file(lung_reg_params["eval_marker_source_file"],
-        #             lung_reg_params["eval_marker_target_file"],
-        #             os.path.join("./results/exp_small_def_11_degree", prefix + "_lddmm_inverse_disp.npy"),
-        #             croped_dim.copy(),
-        #             np.flip(np.array(spacing)).copy(),
-        #             origin,
-        #             False)
 
 
 if __name__ == "__main__":
