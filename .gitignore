@@ -1,0 +1,9 @@
+.vscode
+.code-workspace.code-workspace
+*.pyc
+results
+log
+figure
+temp
+exp
+*.egg-info

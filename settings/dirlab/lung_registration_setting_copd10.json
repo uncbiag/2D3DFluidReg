@@ -1,0 +1,21 @@
+{
+    "source_img":"/home/lintian/Documents/Projects/Lung_sDT_CT/Pre/eval_data/copd/copd10/copd10/copd10_iBHCT.img",
+    "target_img":"/home/lintian/Documents/Projects/Lung_sDT_CT/Pre/eval_data/copd/copd10/copd10/copd10_eBHCT.img",
+    "preprocessed_folder":"../eval_data/reconstruct_full/preprocessed",
+    "recompute_preprocessed":true,
+    "shape":[135,512,512],
+    "spacing":[2.5,0.742,0.742],
+
+    "eval_marker_source_file":"/home/lintian/Documents/Projects/Lung_sDT_CT/Pre/eval_data/copd/copd10/copd10/copd10_300_iBH_xyz_r1.txt",
+    "eval_marker_target_file":"/home/lintian/Documents/Projects/Lung_sDT_CT/Pre/eval_data/copd/copd10/copd10/copd10_300_eBH_xyz_r1.txt",
+
+    "affine":{
+        "run" : true,
+        "setting":"./settings/dirlab/mermaid_setting_affine.json"
+    },
+    "deformable":{
+        "run":false,
+        "use_affine":true,
+        "setting":"./settings/dirlab/mermaid_setting_projection.json"
+    }
+}

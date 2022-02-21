@@ -1,0 +1,21 @@
+{
+    "source_img":"../eval_data/Case5Pack/Images/case5_T00-ssm.img",
+    "target_img":"../eval_data/Case5Pack/Images/case5_T50-ssm.img",
+    "preprocessed_folder":"../eval_data/preprocessed_11_degree_more_proj",
+    "recompute_preprocessed":true,
+    "shape":[106,256,256],
+    "spacing":[2.5,1.1,1.1],
+
+    "eval_marker_source_file":"../eval_data/Case5Pack/ExtremePhases/Case5_300_T00_xyz.txt",
+    "eval_marker_target_file":"../eval_data/Case5Pack/ExtremePhases/Case5_300_T50_xyz.txt",
+
+    "affine":{
+        "run" : true,
+        "setting":"./mermaid_setting_affine.json"
+    },
+    "deformable":{
+        "run":true,
+        "use_affine":true,
+        "setting":"./mermaid_setting_projection.json"
+    }
+}

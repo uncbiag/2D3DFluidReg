@@ -1,0 +1,10 @@
+python test_3d_registration.py -s ./lung_registration_setting_dct1.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct2.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct3.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct4.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct5.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct6.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct7.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct8.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct9.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd
+python test_3d_registration.py -s ./lung_registration_setting_dct10.json -r=./results/resonstruct -p=../eval_data/preprocessed_11_degree -d ./results/exp_reconstruct_3d_reg_sgd

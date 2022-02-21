@@ -1,0 +1,10 @@
+python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd5.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_4_proj --angle=11 --projection_num=4
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_dct2.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd3.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd4.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd5.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd6.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd7.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd8.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd9.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
+# python test_ct_registration.py -s ./settings/dirlab/lung_registration_setting_copd10.json -d ./results/exp_copd_11_degree_8_proj -p ../eval_data/preprocessed_copd_11_degree_8_proj --angle=11 --projection_num=8
