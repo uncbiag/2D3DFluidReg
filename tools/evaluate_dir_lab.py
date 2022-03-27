@@ -1,14 +1,16 @@
-import torch
-import mermaid.utils as utils
-import torch.nn.functional as F
-import numpy as np
+import argparse
 import os
-import mermaid.module_parameters as pars
 
 import matplotlib.pyplot as plt
-
+import mermaid.module_parameters as pars
+import mermaid.utils as utils
+import numpy as np
+import torch
+import torch.nn.functional as F
 from utils.medical_image_utils import resample
-import argparse
+from utils.metrics import get_multi_metric
+from utils.pytorch_utils import Bilinear
+
 
 parser = argparse.ArgumentParser(description='Show registration result')
 parser.add_argument('--setting', '-s', metavar='SETTING', default='',
@@ -328,8 +330,17 @@ if __name__ == "__main__":
 
     eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
 
-    # phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
-    # eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
+    phi_file = disp_folder + "/" + prefix + "_lddmm_inverse_disp.npy"
+    eval_with_file(source_file, target_file, phi_file, dim, spacing, origin, False)
+
+    source_seg = torch.from_numpy(np.load(f"{preprocessed_folder}/{prefix}_I0_3d_seg.npy")).float().unsqueeze(0).unsqueeze(0)
+    target_seg = torch.from_numpy(np.load(f"{preprocessed_folder}/{prefix}_I1_3d_seg.npy")).float().unsqueeze(0).unsqueeze(0)
+    bilinear = Bilinear(zero_boundary=True, using_scale=False, mode="nearest")
+    phi = torch.from_numpy(np.load(f"{disp_folder}/{prefix}_lddmm_disp.npy")*2.-1.)
+    warped = bilinear(source_seg, phi)
+
+    metrics = get_multi_metric(warped, target_seg, verbose=False)
+    print(f"Dice:{metrics['batch_avg_res']['dice'][0, 1:]}")
 
     # ct_source_file = "../eval_data/preprocessed/ihale_3d.npy"
     # ct_target_file = "../eval_data/preprocessed/ehale_3d.npy"
