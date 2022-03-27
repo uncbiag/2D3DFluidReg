@@ -1,6 +1,7 @@
 import argparse
 import os
 import warnings
+import time
 
 import mermaid
 import mermaid.module_parameters as pars
@@ -143,7 +144,7 @@ def main(args):
         affine_opt.get_optimizer().set_save_fig(True)
         affine_opt.get_optimizer().set_expr_name(f"{args.exp_name}/plots")
         affine_opt.get_optimizer().set_save_fig_path(args.output)
-        affine_opt.get_optimizer().set_pair_name(["affine"])
+        affine_opt.get_optimizer().set_pair_name([f"{prefix}_affine"])
 
         affine_opt.register()
 
@@ -209,9 +210,14 @@ def main(args):
         opt.get_optimizer().set_save_fig(True)
         opt.get_optimizer().set_expr_name(f"{args.exp_name}/plots")
         opt.get_optimizer().set_save_fig_path(args.output)
-        opt.get_optimizer().set_pair_name(["lddmm"])
+        opt.get_optimizer().set_pair_name([f"{prefix}_lddmm"])
 
+        start = time.time()
         opt.register()
+        end = time.time()
+        with open(os.path.join(result_path, prefix + "_elspsed_memory.txt"),'w+') as f:
+          f.write(f'time: {end-start}')
+          f.write(f"memory: {torch.cuda.memory_allocated()}")
 
         # # opt.get_optimizer().save_checkpoint("./log/checkpoint")
 
